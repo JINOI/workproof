@@ -8,6 +8,8 @@
   --brand-green: #4cb050;
   --brand-blue-light: #dceaf5;
   --brand-green-light: #e6f4e7;
+  --brand-blue-glow: rgba(30, 90, 158, 0.2);
+  --brand-green-glow: rgba(76, 176, 80, 0.1);
   --background: #f9fafb;
   --foreground: #333d4b;
   --card: #ffffff;
@@ -159,13 +161,18 @@
 }
 
 .landing-page-gradient {
-  background: linear-gradient(
-    135deg,
-    var(--brand-blue-light) 0%,
-    #e8f2f9 32%,
-    #edf6ef 68%,
-    #ffffff 100%
-  );
+  background-color: #ffffff;
+  background-image:
+    radial-gradient(ellipse 90% 75% at -8% -12%, var(--brand-blue-glow) 0%, rgba(30, 90, 158, 0.06) 42%, transparent 68%),
+    radial-gradient(ellipse 55% 45% at 0% 45%, var(--brand-green-glow) 0%, transparent 58%),
+    linear-gradient(
+      118deg,
+      #d9ebf8 0%,
+      #e9f3fb 18%,
+      #f3f8fc 38%,
+      #f9fbfd 58%,
+      #ffffff 78%
+    );
 }
 
 /* Landing hero — sequential line reveal */

@@ -6,6 +6,7 @@ import { useLayoutEffect, useRef, useState } from 'react'
 import { FileText, LayoutDashboard, LogOut, Settings, User, Users } from 'lucide-react'
 
 import { SafeBridgeLogo } from '@/components/brand/safebridge-logo'
+import { ProfileDialog } from '@/components/dashboard/profile-dialog'
 
 import { useDashboardSidebar } from '@/components/dashboard/sidebar-context'
 import {
@@ -29,6 +30,7 @@ export function Sidebar() {
   const { isOpen } = useDashboardSidebar()
   const navListRef = useRef<HTMLUListElement>(null)
   const [indicator, setIndicator] = useState({ top: 0, height: 0, opacity: 0 })
+  const [profileOpen, setProfileOpen] = useState(false)
 
   const handleSignOut = async () => {
     const supabase = createClient()
@@ -116,7 +118,12 @@ export function Sidebar() {
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent side="right" align="start" className="w-40">
-                  <DropdownMenuItem>
+                  <DropdownMenuItem
+                    onSelect={(event) => {
+                      event.preventDefault()
+                      setProfileOpen(true)
+                    }}
+                  >
                     <User className="h-4 w-4" />
                     프로필
                   </DropdownMenuItem>
@@ -141,6 +148,8 @@ export function Sidebar() {
           </button>
         </div>
       </div>
+
+      <ProfileDialog open={profileOpen} onOpenChange={setProfileOpen} />
     </aside>
   )
 }
