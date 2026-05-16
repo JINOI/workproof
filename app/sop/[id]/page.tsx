@@ -455,7 +455,7 @@ export default function SOPDetailPage() {
               </h1>
               {sop && (
                 <p className="text-[#6b7684]">
-                  생성일 {formatDate(sop.created_at)} · 언어 {sop.languages.join(', ')} · 상태 {sop.status}
+                  생성일 {formatDate(sop.created_at)} · 언어 {sop.languages.map(getLanguageLabel).join(', ')}
                 </p>
               )}
             </div>
