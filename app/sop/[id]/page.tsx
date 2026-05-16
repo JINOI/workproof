@@ -246,7 +246,7 @@ function TrainingContentDialog({
       <DialogContent className="max-h-[90vh] overflow-hidden sm:max-w-5xl">
         <DialogHeader>
           <DialogTitle>교육자료 및 퀴즈</DialogTitle>
-          <DialogDescription>{sop ? `${sop.title}에서 생성된 요약자료와 퀴즈 정답입니다.` : 'SOP 생성 내용을 불러오지 못했습니다.'}</DialogDescription>
+          <DialogDescription>{sop ? `${sop.title}에서 생성된 요약자료와 퀴즈 정답입니다.` : '안전 관리 가이드 생성 내용을 불러오지 못했습니다.'}</DialogDescription>
         </DialogHeader>
 
         <div className="max-h-[calc(90vh-8rem)] space-y-6 overflow-y-auto pr-1">
@@ -391,7 +391,7 @@ export default function SOPDetailPage() {
         }
 
         if (!response.ok) {
-          throw new Error('SOP 상세 정보를 불러오지 못했습니다.')
+          throw new Error('안전 관리 가이드 상세 정보를 불러오지 못했습니다.')
         }
 
         const payload = (await response.json()) as { sop: ApiSopDetail }
@@ -402,7 +402,7 @@ export default function SOPDetailPage() {
         }
       } catch (error) {
         if (isMounted) {
-          setLoadError(error instanceof Error ? error.message : 'SOP 상세 정보를 불러오지 못했습니다.')
+          setLoadError(error instanceof Error ? error.message : '안전 관리 가이드 상세 정보를 불러오지 못했습니다.')
           setSop(null)
         }
       } finally {
@@ -445,13 +445,13 @@ export default function SOPDetailPage() {
             <div>
               <Link href="/sop" className="mb-4 flex items-center gap-1 text-sm text-[#6b7684] hover:text-[#333d4b]">
                 <ArrowLeft className="h-4 w-4" />
-                SOP 목록으로
+                안전 관리 가이드 목록으로
               </Link>
               <Badge variant="secondary" className="mb-2 bg-[#e8f3ff] text-[#3182f6]">
-                SOP 상세
+                안전 관리 가이드 상세
               </Badge>
               <h1 className="mb-1 text-2xl font-bold text-[#333d4b]">
-                {isLoading ? '불러오는 중...' : sop?.title ?? 'SOP를 찾을 수 없습니다'}
+                {isLoading ? '불러오는 중...' : sop?.title ?? '안전 관리 가이드를 찾을 수 없습니다'}
               </h1>
               {sop && (
                 <p className="text-[#6b7684]">
@@ -522,7 +522,7 @@ export default function SOPDetailPage() {
             <CardContent className="space-y-2">
               {!isLoading && filteredWorkers.length === 0 && (
                 <div className="rounded-lg border border-dashed border-[#e5e8eb] p-8 text-center text-sm text-[#6b7684]">
-                  이 SOP에 등록된 작업자 이수 기록이 없습니다.
+                  이 안전 관리 가이드에 등록된 작업자 이수 기록이 없습니다.
                 </div>
               )}
 

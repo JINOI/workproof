@@ -131,7 +131,7 @@ export function buildWorkerRows(logs: WorkerLogRow[]): WorkerSummaryRow[] {
         status: getAggregateStatus(workerLogs),
         attempts: maxAttempts,
         wrongAnswers: getUniqueWrongAnswers(workerLogs),
-        sopTitle: sopTitles.length === 1 ? sopTitles[0] : `${sopTitles.length}개 SOP`,
+        sopTitle: sopTitles.length === 1 ? sopTitles[0] : `${sopTitles.length}개 안전 관리 가이드`,
         sopTitles,
         sopCount: sopTitles.length,
         logCount: workerLogs.length,

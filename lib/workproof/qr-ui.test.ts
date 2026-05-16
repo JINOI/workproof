@@ -8,7 +8,7 @@ function readSource(pathFromRoot: string) {
   return readFileSync(new URL(`../../${pathFromRoot}`, import.meta.url), 'utf8')
 }
 
-test('dashboard and SOP pages move the company QR trigger into the page header slot', () => {
+test('dashboard and safety management guide pages move the company QR trigger into the page header slot', () => {
   for (const pagePath of ['app/dashboard/page.tsx', 'app/sop/page.tsx']) {
     const source = readSource(pagePath)
 

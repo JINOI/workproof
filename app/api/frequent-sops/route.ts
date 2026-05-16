@@ -12,7 +12,7 @@ export async function GET() {
     const templates = await listFrequentSopTemplates()
     return NextResponse.json({ templates })
   } catch (error) {
-    const message = error instanceof Error ? error.message : '자주 찾는 SOP를 불러오지 못했습니다.'
+    const message = error instanceof Error ? error.message : '자주 찾는 안전 관리 가이드를 불러오지 못했습니다.'
     const status = message.includes('Authentication') ? 401 : 500
     return NextResponse.json({ error: message }, { status })
   }
@@ -24,7 +24,7 @@ export async function POST(request: Request) {
     const sop = await addFrequentSopTemplateToCurrentUser(body.templateKey)
     return NextResponse.json({ sop }, { status: 201 })
   } catch (error) {
-    const message = error instanceof Error ? error.message : '자주 찾는 SOP를 추가하지 못했습니다.'
+    const message = error instanceof Error ? error.message : '자주 찾는 안전 관리 가이드를 추가하지 못했습니다.'
     const status = message.includes('Authentication') ? 401 : 500
     return NextResponse.json({ error: message }, { status })
   }

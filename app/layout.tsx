@@ -9,7 +9,7 @@ const _geistMono = Geist_Mono({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   title: 'SafeBridge - 언어의 장벽을 넘어, 안전한 일터로',
-  description: 'SOP 교육을 만들고 근로자 이수 기록을 관리하는 SafeBridge 관리자 앱입니다.',
+  description: '안전 관리 가이드 교육을 만들고 근로자 이수 기록을 관리하는 SafeBridge 관리자 앱입니다.',
   generator: 'v0.app',
   icons: {
     icon: [

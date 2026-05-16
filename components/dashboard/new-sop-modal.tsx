@@ -31,7 +31,7 @@ const DEFAULT_LANGUAGE_CODES = SUPPORTED_LANGUAGES.map((language) => language.co
 
 function getErrorMessage(error: unknown) {
   if (error instanceof Error) return error.message
-  return 'SOP 생성에 실패했습니다.'
+  return '안전 관리 가이드 생성에 실패했습니다.'
 }
 
 export function NewSOPModal({ open, onOpenChange, onCreated }: NewSOPModalProps) {
@@ -84,7 +84,7 @@ export function NewSOPModal({ open, onOpenChange, onCreated }: NewSOPModalProps)
       const payload = (await response.json()) as { sop?: CreatedSop; error?: string }
 
       if (!response.ok || !payload.sop) {
-        throw new Error(payload.error ?? 'SOP 생성에 실패했습니다.')
+        throw new Error(payload.error ?? '안전 관리 가이드 생성에 실패했습니다.')
       }
 
       setCreatedSop(payload.sop)
@@ -130,7 +130,7 @@ export function NewSOPModal({ open, onOpenChange, onCreated }: NewSOPModalProps)
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="text-[#333d4b]">
-            {step === 'upload' && 'SOP 문서 업로드'}
+            {step === 'upload' && '안전 관리 가이드 문서 업로드'}
             {step === 'processing' && 'AI 생성 중'}
             {step === 'complete' && '교육 콘텐츠 생성 완료'}
           </DialogTitle>
@@ -161,7 +161,7 @@ export function NewSOPModal({ open, onOpenChange, onCreated }: NewSOPModalProps)
                     <p className="break-all font-medium text-[#3182f6]">{file.name}</p>
                   ) : (
                     <>
-                      <p className="mb-1 text-[#6b7684]">업로드할 SOP 문서를 선택하세요.</p>
+                      <p className="mb-1 text-[#6b7684]">업로드할 안전 관리 가이드 문서를 선택하세요.</p>
                       <p className="text-xs text-[#8b95a1]">PDF, DOC, DOCX, TXT 최대 20MB</p>
                     </>
                   )}
@@ -200,7 +200,7 @@ export function NewSOPModal({ open, onOpenChange, onCreated }: NewSOPModalProps)
           <div className="flex flex-col items-center py-12">
             <Loader2 className="mb-4 h-12 w-12 animate-spin text-[#3182f6]" />
             <p className="text-center text-[#6b7684]">
-              SOP 문서를 분석하는 중입니다.
+              안전 관리 가이드 문서를 분석하는 중입니다.
               <br />
               파일 크기에 따라 잠시 걸릴 수 있습니다.
             </p>

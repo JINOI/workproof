@@ -28,7 +28,7 @@ type SidebarItem = {
 
 const sidebarItems: SidebarItem[] = [
   { icon: LayoutDashboard, label: '대시보드', href: '/dashboard', activePath: '/dashboard' },
-  { icon: FileText, label: 'SOP 관리', href: '/sop', activePrefix: '/sop' },
+  { icon: FileText, label: '안전 관리 가이드', href: '/sop', activePrefix: '/sop' },
   { icon: Users, label: '근로자', href: '/workers', activePrefix: '/workers' },
 ]
 

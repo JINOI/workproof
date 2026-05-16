@@ -226,7 +226,7 @@ export async function deleteSop(id: string) {
     const { error: storageError } = await supabase.storage.from('sop-files').remove([sop.source_file_path])
 
     if (storageError) {
-      console.warn('Failed to remove SOP source file after deleting SOP', {
+      console.warn('Failed to remove safety management guide source file after deleting guide', {
         sopId: id,
         sourceFilePath: sop.source_file_path,
         message: storageError.message,

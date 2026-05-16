@@ -106,13 +106,13 @@ test('groups education logs by worker name and birth date', () => {
   assert.deepEqual(
     rows.map((row) => [row.name, row.birthDate, row.sopCount, row.sopTitle, row.status]),
     [
-      ['김 안전', '1990-01-01', 2, '2개 SOP', 'warning'],
+      ['김 안전', '1990-01-01', 2, '2개 안전 관리 가이드', 'warning'],
       ['박 보건', '1992-02-02', 1, '지게차 안전', 'safe'],
     ],
   )
 })
 
-test('builds stable worker and SOP dropdown options', () => {
+test('builds stable worker and safety management guide dropdown options', () => {
   assert.deepEqual(getWorkerFilterOptions(logs), [
     { value: getWorkerKey('김 안전', '1990-01-01'), label: '김 안전 / 1990-01-01' },
     { value: getWorkerKey('박 보건', '1992-02-02'), label: '박 보건 / 1992-02-02' },
@@ -124,7 +124,7 @@ test('builds stable worker and SOP dropdown options', () => {
   ])
 })
 
-test('filters logs by selected worker and SOP before grouping', () => {
+test('filters logs by selected worker and safety management guide before grouping', () => {
   const selectedLogs = filterWorkerLogs(logs, {
     workerKey: getWorkerKey('김 안전', '1990-01-01'),
     sopId: 'sop-b',
@@ -138,7 +138,7 @@ test('filters logs by selected worker and SOP before grouping', () => {
   assert.equal(rows[0].status, 'warning')
 })
 
-test('uses each worker latest log when summarizing one SOP', () => {
+test('uses each worker latest log when summarizing one safety management guide', () => {
   const rows = buildLatestWorkerRows(repeatedSopLogs)
   const alice = rows.find((row) => row.workerKey === getWorkerKey('Alice Kim', '1990-01-01'))
 
@@ -154,7 +154,7 @@ test('uses each worker latest log when summarizing one SOP', () => {
   assert.equal(alice.sopCount, 1)
 })
 
-test('counts SOP completion from latest worker logs only', () => {
+test('counts safety management guide completion from latest worker logs only', () => {
   assert.deepEqual(summarizeLatestWorkerCompletion(repeatedSopLogs), {
     totalWorkers: 2,
     completedWorkers: 1,
