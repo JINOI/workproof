@@ -12,6 +12,11 @@ import { StatsCards } from '@/components/dashboard/stats-cards'
 import { getClientAuthenticatedUser } from '@/lib/auth/client-session'
 import { createClient } from '@/lib/supabase/client'
 import { formatDashboardTitle } from '@/lib/workproof/dashboard'
+import {
+  buildDashboardStatTrends,
+  readDashboardStatsSnapshot,
+  writeDashboardStatsSnapshot,
+} from '@/lib/workproof/dashboard-stats'
 
 type ApiSop = {
   id: string
@@ -58,6 +63,7 @@ export default function DashboardPage() {
   const [isLoadingSops, setIsLoadingSops] = useState(false)
   const [isLoadingFrequentSops, setIsLoadingFrequentSops] = useState(false)
   const [sops, setSops] = useState<DashboardSop[]>([])
+  const [apiSops, setApiSops] = useState<ApiSop[]>([])
   const [frequentSopTemplates, setFrequentSopTemplates] = useState<FrequentSopTemplate[]>([])
   const [addingTemplateKey, setAddingTemplateKey] = useState<string | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -108,6 +114,7 @@ export default function DashboardPage() {
         const templatesPayload = (await templatesResponse.json()) as { templates: FrequentSopTemplate[] }
 
         if (isMounted) {
+          setApiSops(sopsPayload.sops)
           setSops(sopsPayload.sops.map(toDashboardSop))
           setFrequentSopTemplates(templatesPayload.templates)
           setLoadError(null)
@@ -115,6 +122,7 @@ export default function DashboardPage() {
       } catch (error) {
         if (isMounted) {
           setLoadError(error instanceof Error ? error.message : '안전 관리 가이드 목록을 불러오지 못했습니다.')
+          setApiSops([])
           setSops([])
         }
       } finally {
@@ -147,6 +155,19 @@ export default function DashboardPage() {
       needsAttentionWorkers: Math.max(totalWorkers - safeWorkers, 0),
     }
   }, [sops])
+
+  const statTrends = useMemo(
+    () => buildDashboardStatTrends(stats, apiSops, readDashboardStatsSnapshot()),
+    [apiSops, stats],
+  )
+
+  useEffect(() => {
+    if (isCheckingSession || isLoadingSops) {
+      return
+    }
+
+    writeDashboardStatsSnapshot(stats)
+  }, [isCheckingSession, isLoadingSops, stats])
 
   const handleAddFrequentSop = async (templateKey: string) => {
     setAddingTemplateKey(templateKey)
@@ -198,7 +219,7 @@ export default function DashboardPage() {
 
         {loadError && <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{loadError}</p>}
 
-        <StatsCards {...stats} />
+        <StatsCards {...stats} trends={statTrends} />
 
         <FrequentSopTemplates
           templates={frequentSopTemplates}

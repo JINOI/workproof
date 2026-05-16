@@ -1,69 +1,99 @@
-import { AlertTriangle, CheckCircle, FileText, Users } from 'lucide-react'
-
-import { Card, CardContent } from '@/components/ui/card'
+import { Card } from '@/components/ui/card'
+import { cn } from '@/lib/utils'
+import type { DashboardStatTrend } from '@/lib/workproof/dashboard-stats'
 
 interface StatsCardsProps {
   activeSOPs: number
   totalWorkers: number
   safetyRate: number
   needsAttentionWorkers: number
+  trends?: {
+    activeSOPs?: DashboardStatTrend
+    totalWorkers?: DashboardStatTrend
+    safetyRate?: DashboardStatTrend
+    needsAttentionWorkers?: DashboardStatTrend
+  }
 }
 
-export function StatsCards({ activeSOPs, totalWorkers, safetyRate, needsAttentionWorkers }: StatsCardsProps) {
+const kpiNumberGradient =
+  'bg-gradient-to-r from-blue-600 to-emerald-400 bg-clip-text text-transparent'
+
+const trendToneClass = {
+  positive: 'text-[#2563eb]',
+  negative: 'text-[#2563eb]/50',
+  neutral: 'text-[#8b95a1]',
+} as const
+
+function StatCard({
+  value,
+  suffix,
+  label,
+  trend,
+}: {
+  value: number
+  suffix: string
+  label: string
+  trend?: DashboardStatTrend
+}) {
+  return (
+    <Card
+      className={cn(
+        'group overflow-hidden border border-[#e5e8eb] bg-white py-0 shadow-sm',
+        'bg-[linear-gradient(135deg,rgba(37,99,235,0.04),rgba(52,211,153,0.04))]',
+        'transition-all duration-200 ease-out',
+        'hover:-translate-y-2 hover:border-[rgba(37,99,235,0.22)] hover:shadow-lg',
+        'hover:bg-[linear-gradient(135deg,rgba(37,99,235,0.06),rgba(52,211,153,0.06))]',
+      )}
+    >
+      <div
+        aria-hidden
+        className="h-1 w-full bg-[linear-gradient(90deg,#2563eb_0%,#34d399_100%)] opacity-85 transition-opacity duration-200 group-hover:opacity-100"
+      />
+      <div className="px-5 pt-4 pb-5">
+        <p className="text-sm font-medium text-[#8b95a1]">{label}</p>
+        <div className="mt-2 flex items-end gap-0.5">
+          <p className={cn('text-5xl leading-none font-bold tracking-tight tabular-nums', kpiNumberGradient)}>
+            {value}
+          </p>
+          {suffix ? <span className="mb-1 text-lg font-medium text-[#8b95a1]">{suffix}</span> : null}
+        </div>
+        {trend ? (
+          <p className={cn('mt-3 text-xs font-medium', trendToneClass[trend.tone])}>{trend.label}</p>
+        ) : null}
+      </div>
+    </Card>
+  )
+}
+
+export function StatsCards({
+  activeSOPs,
+  totalWorkers,
+  safetyRate,
+  needsAttentionWorkers,
+  trends,
+}: StatsCardsProps) {
   const stats = [
+    { value: activeSOPs, suffix: '개', label: '등록 가이드', trendKey: 'activeSOPs' as const },
+    { value: totalWorkers, suffix: '명', label: '전체 작업자', trendKey: 'totalWorkers' as const },
+    { value: safetyRate, suffix: '%', label: '평균 이수율', trendKey: 'safetyRate' as const },
     {
-      icon: FileText,
-      label: '등록된 안전 관리 가이드',
-      value: activeSOPs,
-      suffix: '개',
-      iconBg: 'bg-[#e8f3ff]',
-      iconColor: 'text-[#3182f6]',
-    },
-    {
-      icon: Users,
-      label: '전체 작업자',
-      value: totalWorkers,
-      suffix: '명',
-      iconBg: 'bg-[#e6f9f1]',
-      iconColor: 'text-[#00d082]',
-    },
-    {
-      icon: CheckCircle,
-      label: '평균 안전율',
-      value: safetyRate,
-      suffix: '%',
-      iconBg: 'bg-[#fff4d6]',
-      iconColor: 'text-[#b88600]',
-    },
-    {
-      icon: AlertTriangle,
-      label: '주의 필요',
       value: needsAttentionWorkers,
       suffix: '명',
-      iconBg: 'bg-[#f2f4f6]',
-      iconColor: 'text-[#6b7684]',
+      label: '미이수 작업자',
+      trendKey: 'needsAttentionWorkers' as const,
     },
   ]
 
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
       {stats.map((stat) => (
-        <Card key={stat.label} className="border border-border">
-          <CardContent className="p-5">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="mb-1 text-sm text-[#6b7684]">{stat.label}</p>
-                <p className="text-3xl font-bold text-[#333d4b]">
-                  {stat.value}
-                  <span className="text-lg font-normal text-[#8b95a1]">{stat.suffix}</span>
-                </p>
-              </div>
-              <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${stat.iconBg}`}>
-                <stat.icon className={`h-5 w-5 ${stat.iconColor}`} />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <StatCard
+          key={stat.label}
+          value={stat.value}
+          suffix={stat.suffix}
+          label={stat.label}
+          trend={trends?.[stat.trendKey]}
+        />
       ))}
     </div>
   )
