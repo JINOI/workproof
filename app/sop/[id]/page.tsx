@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
-import { AlertTriangle, ArrowLeft, BookOpenCheck, CheckCircle, Clock, Download, Share2 } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, BookOpenCheck, CheckCircle, Clock, Share2 } from 'lucide-react'
 
 import { CompanyQrDialogButton } from '@/components/dashboard/company-qr'
 import { DashboardLayout } from '@/components/dashboard/dashboard-layout'
@@ -464,10 +464,6 @@ export default function SOPDetailPage() {
               <Button variant="outline" className="border-[#e5e8eb]" disabled={!sop} onClick={() => setShowTrainingContent(true)}>
                 <BookOpenCheck className="mr-2 h-4 w-4" />
                 교육자료/퀴즈 보기
-              </Button>
-              <Button variant="outline" className="border-[#e5e8eb]" disabled={!sop}>
-                <Download className="mr-2 h-4 w-4" />
-                리포트 다운로드
               </Button>
               <CompanyQrDialogButton disabled={!sop} />
               <Button className="bg-[#3182f6] text-white hover:bg-[#1b64da]" disabled={!sop}>

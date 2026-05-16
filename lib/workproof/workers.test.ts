@@ -9,6 +9,7 @@ import {
   getSopFilterOptions,
   getWorkerFilterOptions,
   getWorkerKey,
+  getWrongQuestionLabels,
   summarizeLatestWorkerSafety,
   type WorkerLogRow,
 } from './workers.ts'
@@ -165,6 +166,32 @@ test('filters logs by selected worker and safety management guide before groupin
   assert.equal(rows[0].name, '김 안전')
   assert.equal(rows[0].sopTitle, 'LOTO 절차')
   assert.equal(rows[0].status, 'warning')
+})
+
+test('resolves wrong question IDs to visible question prompts', () => {
+  assert.deepEqual(
+    getWrongQuestionLabels(
+      ['q-1', 'missing-question', 'q-2'],
+      [
+        { id: 'q-1', language: 'ko', position: 1, prompt: 'What should be inspected before work?' },
+        { id: 'q-2', language: 'ko', position: null, prompt: 'Wear the required PPE.' },
+      ],
+    ),
+    ['1. What should be inspected before work?', 'missing-question', 'Wear the required PPE.'],
+  )
+})
+
+test('prefers Korean question prompts for manager wrong-answer review', () => {
+  assert.deepEqual(
+    getWrongQuestionLabels(
+      ['vi-q-1'],
+      [
+        { id: 'vi-q-1', language: 'vi', position: 1, prompt: 'Can kiem tra gi truoc khi lam viec?' },
+        { id: 'ko-q-1', language: 'ko', position: 1, prompt: '작업 전 무엇을 확인해야 합니까?' },
+      ],
+    ),
+    ['1. 작업 전 무엇을 확인해야 합니까?'],
+  )
 })
 
 test('uses each worker latest log when summarizing one safety management guide', () => {

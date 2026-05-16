@@ -17,8 +17,10 @@ import {
   filterWorkerLogs,
   getSopFilterOptions,
   getWorkerFilterOptions,
+  getWrongQuestionLabels,
   type WorkerLogRow,
   type WorkerSummaryRow,
+  type WrongQuestionLabelSource,
 } from '@/lib/workproof/workers'
 
 type WorkerStatus = WorkerDetail['status']
@@ -39,9 +41,12 @@ type ApiEducationLog = {
   wrong_question_ids: string[]
 }
 
+type ApiQuizQuestion = WrongQuestionLabelSource
+
 type ApiSopDetail = {
   id: string
   title: string
+  quiz_questions: ApiQuizQuestion[]
   education_logs: ApiEducationLog[]
 }
 
@@ -87,7 +92,7 @@ function formatDateTime(value: string | null) {
   }).format(new Date(value))
 }
 
-function toWorkerLogRow(log: ApiEducationLog, sopId: string, sopTitle: string): WorkerLogRow {
+function toWorkerLogRow(log: ApiEducationLog, sopId: string, sopTitle: string, quizQuestions: ApiQuizQuestion[]): WorkerLogRow {
   return {
     id: log.id,
     name: log.worker_name,
@@ -96,7 +101,7 @@ function toWorkerLogRow(log: ApiEducationLog, sopId: string, sopTitle: string): 
     attempts: log.attempts,
     completedAt: formatDateTime(log.completed_at),
     completedAtSortValue: log.completed_at,
-    wrongAnswers: log.wrong_question_ids,
+    wrongAnswers: getWrongQuestionLabels(log.wrong_question_ids, quizQuestions),
     sopId,
     sopTitle,
   }
@@ -177,7 +182,9 @@ export default function WorkersPage() {
           }),
         )
 
-        const nextWorkerLogs = detailPayloads.flatMap(({ sop }) => sop.education_logs.map((log) => toWorkerLogRow(log, sop.id, sop.title)))
+        const nextWorkerLogs = detailPayloads.flatMap(({ sop }) =>
+          sop.education_logs.map((log) => toWorkerLogRow(log, sop.id, sop.title, sop.quiz_questions)),
+        )
 
         if (isMounted) {
           setWorkerLogs(nextWorkerLogs)

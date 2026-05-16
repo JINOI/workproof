@@ -93,13 +93,13 @@ export function WorkerDetailModal({ worker, open, onOpenChange }: WorkerDetailMo
             {worker.wrongAnswers.length > 0 && (
               <div className="py-3">
                 <span className="mb-2 block text-[#6b7684]">오답 문항</span>
-                <div className="flex flex-wrap gap-2">
-                  {worker.wrongAnswers.map((questionId) => (
-                    <span key={questionId} className="rounded-full bg-[#fff0f0] px-3 py-1 text-sm text-[#f04452]">
-                      {questionId}
-                    </span>
+                <ul className="space-y-2">
+                  {worker.wrongAnswers.map((questionLabel, index) => (
+                    <li key={`${questionLabel}-${index}`} className="rounded-lg bg-[#fff0f0] px-3 py-2 text-sm leading-6 text-[#f04452]">
+                      {questionLabel}
+                    </li>
                   ))}
-                </div>
+                </ul>
               </div>
             )}
           </div>
