@@ -75,6 +75,50 @@ export async function getSopForManager(id: string) {
   return data
 }
 
+export async function deleteSop(id: string) {
+  const supabase = await createClient()
+  const user = await getCurrentUser()
+
+  if (!user) {
+    throw new Error('Authentication required')
+  }
+
+  const { data: sop, error: lookupError } = await supabase
+    .from('sops')
+    .select('id, source_file_path')
+    .eq('id', id)
+    .eq('owner_id', user.id)
+    .single()
+
+  if (lookupError) {
+    if (lookupError.code === 'PGRST116') {
+      return null
+    }
+
+    throw lookupError
+  }
+
+  const { error: deleteError } = await supabase.from('sops').delete().eq('id', id).eq('owner_id', user.id)
+
+  if (deleteError) {
+    throw deleteError
+  }
+
+  if (sop.source_file_path) {
+    const { error: storageError } = await supabase.storage.from('sop-files').remove([sop.source_file_path])
+
+    if (storageError) {
+      console.warn('Failed to remove SOP source file after deleting SOP', {
+        sopId: id,
+        sourceFilePath: sop.source_file_path,
+        message: storageError.message,
+      })
+    }
+  }
+
+  return sop
+}
+
 export async function getPublicEducationByToken(publicToken: string) {
   const supabase = await createClient()
   const { data, error } = await supabase

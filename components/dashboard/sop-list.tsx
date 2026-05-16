@@ -1,8 +1,10 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
-import { FileText, Plus } from 'lucide-react'
+import { FileText, LoaderCircle, Plus, Trash2 } from 'lucide-react'
 
+import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 
@@ -20,9 +22,47 @@ interface SOPListProps {
   sops: DashboardSop[]
   isLoading?: boolean
   onNewSOP?: () => void
+  onSOPDeleted?: (sopId: string) => void
+  onDeleteError?: (message: string) => void
 }
 
-export function SOPList({ sops, isLoading = false, onNewSOP }: SOPListProps) {
+export function SOPList({ sops, isLoading = false, onNewSOP, onSOPDeleted, onDeleteError }: SOPListProps) {
+  const [deletingSopId, setDeletingSopId] = useState<string | null>(null)
+
+  async function handleDeleteSop(sop: DashboardSop) {
+    const confirmed = window.confirm(`"${sop.title}" SOP를 삭제할까요?\n퀴즈와 근로자 이수 기록도 함께 삭제됩니다.`)
+
+    if (!confirmed) {
+      return
+    }
+
+    setDeletingSopId(sop.id)
+
+    try {
+      const response = await fetch(`/api/sops/${sop.id}`, {
+        method: 'DELETE',
+        credentials: 'same-origin',
+      })
+      const payload = (await response.json().catch(() => ({}))) as { error?: string }
+
+      if (!response.ok) {
+        throw new Error(payload.error ?? 'SOP를 삭제하지 못했습니다.')
+      }
+
+      onSOPDeleted?.(sop.id)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'SOP를 삭제하지 못했습니다.'
+
+      if (onDeleteError) {
+        onDeleteError(message)
+      } else {
+        window.alert(message)
+      }
+    } finally {
+      setDeletingSopId(null)
+    }
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -63,14 +103,27 @@ export function SOPList({ sops, isLoading = false, onNewSOP }: SOPListProps) {
 
         {!isLoading &&
           sops.map((sop) => (
-            <Link href={`/sop/${sop.id}`} key={sop.id}>
-              <Card className="h-full cursor-pointer border border-border transition-shadow hover:shadow-md">
+            <Card key={sop.id} className="relative h-full border border-border transition-shadow hover:shadow-md">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                className="absolute right-3 top-3 z-10 text-[#8b95a1] hover:bg-red-50 hover:text-red-600"
+                aria-label={`${sop.title} 삭제`}
+                title="SOP 삭제"
+                disabled={deletingSopId !== null}
+                onClick={() => handleDeleteSop(sop)}
+              >
+                {deletingSopId === sop.id ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+              </Button>
+
+              <Link href={`/sop/${sop.id}`} className="block h-full cursor-pointer">
                 <CardContent className="p-6">
                   <div className="mb-4 flex items-start gap-3">
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#e8f3ff]">
                       <FileText className="h-5 w-5 text-[#3182f6]" />
                     </div>
-                    <div className="min-w-0">
+                    <div className="min-w-0 pr-8">
                       <p className="mb-1 text-xs text-[#8b95a1]">{sop.createdAt}</p>
                       <h3 className="truncate font-medium text-[#333d4b]">{sop.title}</h3>
                     </div>
@@ -93,8 +146,8 @@ export function SOPList({ sops, isLoading = false, onNewSOP }: SOPListProps) {
                     </div>
                   </div>
                 </CardContent>
-              </Card>
-            </Link>
+              </Link>
+            </Card>
           ))}
       </div>
     </div>

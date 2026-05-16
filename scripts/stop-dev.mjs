@@ -58,28 +58,48 @@ function stopWindowsFallbackTargets() {
   const script = `
 $root = ${psSingleQuote(repoRoot)}
 $nodes = Get-CimInstance Win32_Process -Filter "name = 'node.exe'"
-$direct = $nodes |
+$repoNextServers = $nodes |
   Where-Object {
     $_.ProcessId -ne ${process.pid} -and
     $_.CommandLine -and
     $_.CommandLine.Contains($root) -and
-    $_.CommandLine -match '\\bnext\\b' -and
-    $_.CommandLine -match '\\bdev\\b'
-  } |
-  Select-Object -ExpandProperty ProcessId
+    (
+      $_.CommandLine.Contains('next dev') -or
+      $_.CommandLine.Contains('start-server.js')
+    )
+  }
 
-$parentsOfRepoNextServers = $nodes |
-  Where-Object {
-    $_.ProcessId -ne ${process.pid} -and
-    $_.CommandLine -and
-    $_.CommandLine.Contains($root) -and
-    $_.CommandLine -match 'start-server\\.js'
-  } |
-  Select-Object -ExpandProperty ParentProcessId
+$targetIds = New-Object 'System.Collections.Generic.HashSet[int]'
 
-@($direct + $parentsOfRepoNextServers) |
-  Where-Object { $_ -and $_ -ne ${process.pid} } |
-  Sort-Object -Unique
+foreach ($server in $repoNextServers) {
+  $candidate = [int]$server.ProcessId
+  $current = $server
+
+  while ($true) {
+    $parent = $nodes | Where-Object { $_.ProcessId -eq $current.ParentProcessId } | Select-Object -First 1
+    if (-not $parent -or -not $parent.CommandLine) {
+      break
+    }
+
+    if (
+      $parent.CommandLine.Contains('scripts/dev-server.mjs') -or
+      $parent.CommandLine.Contains('scripts\\dev-server.mjs') -or
+      ($parent.CommandLine.Contains('npm-cli.js') -and $parent.CommandLine.Contains(' run dev'))
+    ) {
+      $candidate = [int]$parent.ProcessId
+      $current = $parent
+      continue
+    }
+
+    break
+  }
+
+  if ($candidate -ne ${process.pid}) {
+    [void]$targetIds.Add($candidate)
+  }
+}
+
+$targetIds | Sort-Object -Unique
 `
 
   const result = spawnSync(

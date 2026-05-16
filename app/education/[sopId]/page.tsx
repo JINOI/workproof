@@ -17,6 +17,7 @@ type Step = 'info' | 'education' | 'quiz' | 'result' | 'failed'
 
 type EducationCardPayload = {
   language?: string
+  position?: number
   title: string
   content: string
   icon: 'warning' | 'safety' | 'prohibited' | 'equipment'
@@ -63,6 +64,7 @@ function isEducationCard(value: Json): value is EducationCardPayload {
 
   return (
     (typeof value.language === 'undefined' || typeof value.language === 'string') &&
+    (typeof value.position === 'undefined' || typeof value.position === 'number') &&
     typeof value.title === 'string' &&
     typeof value.content === 'string' &&
     (value.icon === 'warning' || value.icon === 'safety' || value.icon === 'prohibited' || value.icon === 'equipment')
@@ -73,7 +75,11 @@ function parseEducationCards(value: Json, language: string): EducationCardPayloa
   if (!Array.isArray(value)) return []
   const cards = value.filter(isEducationCard)
   const localizedCards = cards.filter((card) => card.language === language)
-  return localizedCards.length > 0 ? localizedCards : cards.filter((card) => !card.language || card.language === 'ko')
+  const selectedCards = localizedCards.length > 0 ? localizedCards : cards.filter((card) => !card.language || card.language === 'ko')
+
+  return selectedCards
+    .sort((left, right) => (left.position ?? 999) - (right.position ?? 999))
+    .slice(0, 10)
 }
 
 function parseOptions(value: Json | null): string[] {
@@ -485,6 +491,11 @@ export default function EducationPage() {
 
           {step === 'education' && currentCard && (
             <div className="space-y-6">
+              <div className="text-center">
+                <p className="text-sm font-medium text-[#3182f6]">교육 요약자료</p>
+                <h2 className="mt-1 text-lg font-bold text-[#333d4b]">카드를 넘기며 핵심 내용을 확인하세요.</h2>
+              </div>
+
               <Card className="overflow-hidden border-0 shadow-lg">
                 <div className={cn('p-8 text-center', currentCard.icon === 'prohibited' ? 'bg-[#fff0f0]' : 'bg-[#e8f3ff]')}>
                   {(() => {
