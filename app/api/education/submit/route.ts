@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { z } from 'zod'
+import { ZodError, z } from 'zod'
 
 import type { Json } from '@/lib/supabase/database.types'
 import { submitEducationResult } from '@/lib/workproof/repository'
@@ -23,8 +23,17 @@ const submitEducationSchema = z.object({
 })
 
 export async function POST(request: Request) {
-  const payload = submitEducationSchema.parse(await request.json())
-  const log = await submitEducationResult(payload)
+  try {
+    const payload = submitEducationSchema.parse(await request.json())
+    const log = await submitEducationResult(payload)
 
-  return NextResponse.json({ log }, { status: 201 })
+    return NextResponse.json({ log }, { status: 201 })
+  } catch (error) {
+    if (error instanceof ZodError || error instanceof SyntaxError) {
+      return NextResponse.json({ error: '제출 데이터가 올바르지 않습니다.' }, { status: 400 })
+    }
+
+    console.error('Failed to submit education result', error)
+    return NextResponse.json({ error: '이수 결과를 저장하지 못했습니다.' }, { status: 500 })
+  }
 }

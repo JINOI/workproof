@@ -330,6 +330,7 @@ export default function EducationPage() {
       const finalElapsedTime = Math.floor((Date.now() - startTime) / 1000)
       const finalAnswers = [...wrongHistory, ...answers]
       setElapsedTime(finalElapsedTime)
+      setSubmitError(null)
 
       const response = await fetch('/api/education/submit', {
         method: 'POST',
@@ -349,7 +350,8 @@ export default function EducationPage() {
       })
 
       if (!response.ok) {
-        throw new Error('이수 결과를 저장하지 못했습니다.')
+        const payload = (await response.json().catch(() => null)) as { error?: string } | null
+        throw new Error(payload?.error ?? '이수 결과를 저장하지 못했습니다.')
       }
 
       setStep('result')
