@@ -19,15 +19,15 @@ type ApiSop = {
   created_at: string
   status: 'draft' | 'active' | 'archived'
   totalWorkers: number
-  completedWorkers: number
-  completionRate: number
+  safeWorkers: number
+  safetyRate: number
 }
 
 const emptyStats = {
   activeSOPs: 0,
   totalWorkers: 0,
-  completionRate: 0,
-  pendingWorkers: 0,
+  safetyRate: 0,
+  needsAttentionWorkers: 0,
 }
 
 function formatDate(value: string) {
@@ -45,8 +45,8 @@ function toDashboardSop(sop: ApiSop): DashboardSop {
     description: sop.description,
     createdAt: formatDate(sop.created_at),
     totalWorkers: sop.totalWorkers,
-    completedWorkers: sop.completedWorkers,
-    completionRate: sop.completionRate,
+    safeWorkers: sop.safeWorkers,
+    safetyRate: sop.safetyRate,
   }
 }
 
@@ -145,13 +145,13 @@ export default function DashboardPage() {
     }
 
     const totalWorkers = sops.reduce((sum, sop) => sum + sop.totalWorkers, 0)
-    const completedWorkers = sops.reduce((sum, sop) => sum + sop.completedWorkers, 0)
+    const safeWorkers = sops.reduce((sum, sop) => sum + sop.safeWorkers, 0)
 
     return {
       activeSOPs: sops.length,
       totalWorkers,
-      completionRate: totalWorkers === 0 ? 0 : Math.round((completedWorkers / totalWorkers) * 100),
-      pendingWorkers: Math.max(totalWorkers - completedWorkers, 0),
+      safetyRate: totalWorkers === 0 ? 0 : Math.round((safeWorkers / totalWorkers) * 100),
+      needsAttentionWorkers: Math.max(totalWorkers - safeWorkers, 0),
     }
   }, [sops])
 

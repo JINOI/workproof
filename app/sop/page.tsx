@@ -15,8 +15,8 @@ type ApiSop = {
   description: string | null
   created_at: string
   totalWorkers: number
-  completedWorkers: number
-  completionRate: number
+  safeWorkers: number
+  safetyRate: number
 }
 
 function formatDate(value: string) {
@@ -34,8 +34,8 @@ function toDashboardSop(sop: ApiSop): DashboardSop {
     description: sop.description,
     createdAt: formatDate(sop.created_at),
     totalWorkers: sop.totalWorkers,
-    completedWorkers: sop.completedWorkers,
-    completionRate: sop.completionRate,
+    safeWorkers: sop.safeWorkers,
+    safetyRate: sop.safetyRate,
   }
 }
 

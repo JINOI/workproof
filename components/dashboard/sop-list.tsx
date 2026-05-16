@@ -14,8 +14,8 @@ export interface DashboardSop {
   description: string | null
   createdAt: string
   totalWorkers: number
-  completedWorkers: number
-  completionRate: number
+  safeWorkers: number
+  safetyRate: number
 }
 
 interface SOPListProps {
@@ -132,15 +132,15 @@ export function SOPList({ sops, isLoading = false, onNewSOP, onSOPDeleted, onDel
                   <div className="space-y-3">
                     <div>
                       <div className="mb-1 flex items-center justify-between text-sm">
-                        <span className="text-[#6b7684]">이수율</span>
-                        <span className="font-medium text-[#333d4b]">{sop.completionRate}%</span>
+                        <span className="text-[#6b7684]">안전율</span>
+                        <span className="font-medium text-[#333d4b]">{sop.safetyRate}%</span>
                       </div>
-                      <Progress value={sop.completionRate} className="h-2" />
+                      <Progress value={sop.safetyRate} className="h-2" />
                     </div>
 
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-[#6b7684]">
-                        완료 <span className="font-medium text-[#00d082]">{sop.completedWorkers}</span> / 전체{' '}
+                        안전 <span className="font-medium text-[#00d082]">{sop.safeWorkers}</span> / 전체{' '}
                         <span className="font-medium text-[#333d4b]">{sop.totalWorkers}</span>
                       </span>
                     </div>

@@ -120,14 +120,14 @@ export function buildLatestWorkerRows(logs: WorkerLogRow[]): WorkerSummaryRow[] 
     .sort((left, right) => left.name.localeCompare(right.name, 'ko-KR') || left.birthDate.localeCompare(right.birthDate))
 }
 
-export function summarizeLatestWorkerCompletion(logs: WorkerLogRow[]) {
+export function summarizeLatestWorkerSafety(logs: WorkerLogRow[]) {
   const rows = buildLatestWorkerRows(logs)
-  const completedWorkers = rows.filter((row) => row.status === 'safe' || row.status === 'warning').length
+  const safeWorkers = rows.filter((row) => row.status === 'safe').length
 
   return {
     totalWorkers: rows.length,
-    completedWorkers,
-    completionRate: rows.length === 0 ? 0 : Math.round((completedWorkers / rows.length) * 100),
+    safeWorkers,
+    safetyRate: rows.length === 0 ? 0 : Math.round((safeWorkers / rows.length) * 100),
   }
 }
 

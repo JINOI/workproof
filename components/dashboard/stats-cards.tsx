@@ -1,15 +1,15 @@
-import { CheckCircle, Clock, FileText, Users } from 'lucide-react'
+import { AlertTriangle, CheckCircle, FileText, Users } from 'lucide-react'
 
 import { Card, CardContent } from '@/components/ui/card'
 
 interface StatsCardsProps {
   activeSOPs: number
   totalWorkers: number
-  completionRate: number
-  pendingWorkers: number
+  safetyRate: number
+  needsAttentionWorkers: number
 }
 
-export function StatsCards({ activeSOPs, totalWorkers, completionRate, pendingWorkers }: StatsCardsProps) {
+export function StatsCards({ activeSOPs, totalWorkers, safetyRate, needsAttentionWorkers }: StatsCardsProps) {
   const stats = [
     {
       icon: FileText,
@@ -29,16 +29,16 @@ export function StatsCards({ activeSOPs, totalWorkers, completionRate, pendingWo
     },
     {
       icon: CheckCircle,
-      label: '평균 이수율',
-      value: completionRate,
+      label: '평균 안전율',
+      value: safetyRate,
       suffix: '%',
       iconBg: 'bg-[#fff4d6]',
       iconColor: 'text-[#b88600]',
     },
     {
-      icon: Clock,
-      label: '미이수 작업자',
-      value: pendingWorkers,
+      icon: AlertTriangle,
+      label: '주의 필요',
+      value: needsAttentionWorkers,
       suffix: '명',
       iconBg: 'bg-[#f2f4f6]',
       iconColor: 'text-[#6b7684]',

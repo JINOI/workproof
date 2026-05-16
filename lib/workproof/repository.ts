@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto'
 import { createClient } from '@/lib/supabase/server'
 import type { Json } from '@/lib/supabase/database.types'
 import type { QuizQuestionInsert, SopInsert, SubmitEducationPayload } from './types'
-import { summarizeLatestWorkerCompletion, type WorkerLogRow } from './workers'
+import { summarizeLatestWorkerSafety, type WorkerLogRow } from './workers'
 
 type NewQuizQuestionInput = Omit<QuizQuestionInsert, 'sop_id' | 'organization_name'>
 type FrequentSopTemplateQuestion = {
@@ -79,15 +79,15 @@ export async function listSops() {
 
   return data.map((sop) => {
     const { education_logs, ...sopFields } = sop
-    const { totalWorkers, completedWorkers, completionRate } = summarizeLatestWorkerCompletion(
+    const { totalWorkers, safeWorkers, safetyRate } = summarizeLatestWorkerSafety(
       education_logs.map((log) => toSopWorkerLogRow(log, sop)),
     )
 
     return {
       ...sopFields,
       totalWorkers,
-      completedWorkers,
-      completionRate,
+      safeWorkers,
+      safetyRate,
     }
   })
 }

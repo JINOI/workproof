@@ -9,7 +9,7 @@ import {
   getSopFilterOptions,
   getWorkerFilterOptions,
   getWorkerKey,
-  summarizeLatestWorkerCompletion,
+  summarizeLatestWorkerSafety,
   type WorkerLogRow,
 } from './workers.ts'
 
@@ -98,6 +98,18 @@ const repeatedSopLogs: WorkerLogRow[] = [
     sopId: 'sop-a',
     sopTitle: 'Forklift Safety',
   },
+  {
+    id: 'carla-warning',
+    name: 'Carla Lee',
+    birthDate: '1992-03-03',
+    status: 'warning',
+    attempts: 4,
+    completedAt: '2026. 05. 16. 12:00',
+    completedAtSortValue: '2026-05-16T03:00:00.000Z',
+    wrongAnswers: ['q-3'],
+    sopId: 'sop-a',
+    sopTitle: 'Forklift Safety',
+  },
 ]
 
 test('groups education logs by worker name and birth date', () => {
@@ -159,7 +171,7 @@ test('uses each worker latest log when summarizing one safety management guide',
   const rows = buildLatestWorkerRows(repeatedSopLogs)
   const alice = rows.find((row) => row.workerKey === getWorkerKey('Alice Kim', '1990-01-01'))
 
-  assert.equal(rows.length, 2)
+  assert.equal(rows.length, 3)
   assert.ok(alice)
   assert.equal(alice.id, getWorkerKey('Alice Kim', '1990-01-01'))
   assert.equal(alice.name, 'Alice Kim')
@@ -171,10 +183,10 @@ test('uses each worker latest log when summarizing one safety management guide',
   assert.equal(alice.sopCount, 1)
 })
 
-test('counts safety management guide completion from latest worker logs only', () => {
-  assert.deepEqual(summarizeLatestWorkerCompletion(repeatedSopLogs), {
-    totalWorkers: 2,
-    completedWorkers: 1,
-    completionRate: 50,
+test('counts SOP safety from latest safe worker logs only', () => {
+  assert.deepEqual(summarizeLatestWorkerSafety(repeatedSopLogs), {
+    totalWorkers: 3,
+    safeWorkers: 1,
+    safetyRate: 33,
   })
 })
