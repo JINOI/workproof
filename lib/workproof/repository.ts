@@ -133,7 +133,7 @@ export async function listFrequentSopTemplates() {
 
   const { data: templates, error: templatesError } = await supabase
     .from('frequent_sop_templates')
-    .select('id, template_key, title, description, languages, display_order')
+    .select('id, template_key, title, description, ai_summary, languages, display_order')
     .order('display_order', { ascending: true })
 
   if (templatesError) {
