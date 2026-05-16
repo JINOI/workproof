@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useLayoutEffect, useRef, useState } from 'react'
-import { FileText, LayoutDashboard, LogOut, Settings, User, Users } from 'lucide-react'
+import { FileText, LayoutDashboard, LogOut, Settings, User, Users, type LucideIcon } from 'lucide-react'
 
 import { SafeBridgeLogo } from '@/components/brand/safebridge-logo'
 
@@ -17,11 +17,19 @@ import {
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 
-const sidebarItems = [
+type SidebarItem = {
+  icon: LucideIcon
+  label: string
+  href: string
+  activePath?: string
+  activePrefix?: string
+}
+
+const sidebarItems: SidebarItem[] = [
   { icon: LayoutDashboard, label: '대시보드', href: '/dashboard', activePath: '/dashboard' },
   { icon: FileText, label: 'SOP 관리', href: '/sop', activePrefix: '/sop' },
   { icon: Users, label: '근로자', href: '/workers', activePrefix: '/workers' },
-] as const
+]
 
 export function Sidebar() {
   const pathname = usePathname()

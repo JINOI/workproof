@@ -8,13 +8,20 @@ import { DashboardLayout } from '@/components/dashboard/dashboard-layout'
 import { type WorkerDetail, WorkerDetailModal } from '@/components/dashboard/worker-detail-modal'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { createClient } from '@/lib/supabase/client'
+import {
+  buildWorkerRows,
+  filterWorkerLogs,
+  getSopFilterOptions,
+  getWorkerFilterOptions,
+  type WorkerLogRow,
+  type WorkerSummaryRow,
+} from '@/lib/workproof/workers'
 
 type WorkerStatus = WorkerDetail['status']
 
-type WorkerRow = WorkerDetail & {
-  sopTitle: string
-}
+type WorkerRow = WorkerSummaryRow
 
 type ApiSopSummary = {
   id: string
@@ -31,9 +38,13 @@ type ApiEducationLog = {
 }
 
 type ApiSopDetail = {
+  id: string
   title: string
   education_logs: ApiEducationLog[]
 }
+
+const ALL_WORKERS_VALUE = 'all-workers'
+const ALL_SOPS_VALUE = 'all-sops'
 
 const statusConfig = {
   safe: {
@@ -74,7 +85,7 @@ function formatDateTime(value: string | null) {
   }).format(new Date(value))
 }
 
-function toWorkerRow(log: ApiEducationLog, sopTitle: string): WorkerRow {
+function toWorkerLogRow(log: ApiEducationLog, sopId: string, sopTitle: string): WorkerLogRow {
   return {
     id: log.id,
     name: log.worker_name,
@@ -82,7 +93,9 @@ function toWorkerRow(log: ApiEducationLog, sopTitle: string): WorkerRow {
     status: log.status,
     attempts: log.attempts,
     completedAt: formatDateTime(log.completed_at),
+    completedAtSortValue: log.completed_at,
     wrongAnswers: log.wrong_question_ids,
+    sopId,
     sopTitle,
   }
 }
@@ -91,9 +104,11 @@ export default function WorkersPage() {
   const router = useRouter()
   const [isCheckingSession, setIsCheckingSession] = useState(true)
   const [isLoadingWorkers, setIsLoadingWorkers] = useState(false)
-  const [workers, setWorkers] = useState<WorkerRow[]>([])
+  const [workerLogs, setWorkerLogs] = useState<WorkerLogRow[]>([])
   const [loadError, setLoadError] = useState<string | null>(null)
   const [searchValue, setSearchValue] = useState('')
+  const [selectedWorkerKey, setSelectedWorkerKey] = useState(ALL_WORKERS_VALUE)
+  const [selectedSopId, setSelectedSopId] = useState(ALL_SOPS_VALUE)
   const [selectedWorker, setSelectedWorker] = useState<WorkerRow | null>(null)
   const [showWorkerModal, setShowWorkerModal] = useState(false)
 
@@ -144,16 +159,16 @@ export default function WorkersPage() {
           }),
         )
 
-        const nextWorkers = detailPayloads.flatMap(({ sop }) => sop.education_logs.map((log) => toWorkerRow(log, sop.title)))
+        const nextWorkerLogs = detailPayloads.flatMap(({ sop }) => sop.education_logs.map((log) => toWorkerLogRow(log, sop.id, sop.title)))
 
         if (isMounted) {
-          setWorkers(nextWorkers)
+          setWorkerLogs(nextWorkerLogs)
           setLoadError(null)
         }
       } catch (error) {
         if (isMounted) {
           setLoadError(error instanceof Error ? error.message : '작업자 목록을 불러오지 못했습니다.')
-          setWorkers([])
+          setWorkerLogs([])
         }
       } finally {
         if (isMounted) {
@@ -169,31 +184,41 @@ export default function WorkersPage() {
     }
   }, [router])
 
+  const workerFilterOptions = useMemo(() => getWorkerFilterOptions(workerLogs), [workerLogs])
+  const sopFilterOptions = useMemo(() => getSopFilterOptions(workerLogs), [workerLogs])
+
   const filteredWorkers = useMemo(() => {
+    const filteredLogs = filterWorkerLogs(workerLogs, {
+      workerKey: selectedWorkerKey === ALL_WORKERS_VALUE ? undefined : selectedWorkerKey,
+      sopId: selectedSopId === ALL_SOPS_VALUE ? undefined : selectedSopId,
+    })
+    const rows = buildWorkerRows(filteredLogs)
     const normalizedSearchValue = searchValue.trim().toLowerCase()
+
     if (!normalizedSearchValue) {
-      return workers
+      return rows
     }
 
-    return workers.filter((worker) => {
+    return rows.filter((worker) => {
       const statusLabel = statusConfig[worker.status].label
       return (
         worker.name.toLowerCase().includes(normalizedSearchValue) ||
         worker.birthDate.includes(normalizedSearchValue) ||
         worker.sopTitle.toLowerCase().includes(normalizedSearchValue) ||
+        worker.sopTitles.some((sopTitle) => sopTitle.toLowerCase().includes(normalizedSearchValue)) ||
         statusLabel.includes(normalizedSearchValue)
       )
     })
-  }, [searchValue, workers])
+  }, [searchValue, selectedSopId, selectedWorkerKey, workerLogs])
 
   const workerCounts = useMemo(
     () => ({
-      total: workers.length,
-      safe: workers.filter((worker) => worker.status === 'safe').length,
-      warning: workers.filter((worker) => worker.status === 'warning' || worker.status === 'failed').length,
-      pending: workers.filter((worker) => worker.status === 'pending').length,
+      total: filteredWorkers.length,
+      safe: filteredWorkers.filter((worker) => worker.status === 'safe').length,
+      warning: filteredWorkers.filter((worker) => worker.status === 'warning' || worker.status === 'failed').length,
+      pending: filteredWorkers.filter((worker) => worker.status === 'pending').length,
     }),
-    [workers],
+    [filteredWorkers],
   )
 
   const handleWorkerClick = (worker: WorkerRow) => {
@@ -215,77 +240,111 @@ export default function WorkersPage() {
       onSearchChange={setSearchValue}
       placeholder="근로자 이름, 생년월일, SOP 또는 상태로 검색..."
     >
-        <main className="flex-1 space-y-6 p-6">
-          <div>
-            <h1 className="mb-1 text-2xl font-bold text-[#333d4b]">근로자</h1>
-            <p className="text-[#6b7684]">Supabase에 기록된 근로자 교육 이수 상태를 확인하세요.</p>
-          </div>
+      <main className="flex-1 space-y-6 p-6">
+        <div>
+          <h1 className="mb-1 text-2xl font-bold text-[#333d4b]">근로자</h1>
+          <p className="text-[#6b7684]">Supabase에 기록된 근로자 교육 이수 상태를 확인하세요.</p>
+        </div>
 
-          {loadError && <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{loadError}</p>}
+        {loadError && <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{loadError}</p>}
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-            <Card className="border border-border">
-              <CardContent className="flex items-center gap-3 p-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#e8f3ff] text-[#3182f6]">
-                  <Users className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="text-sm text-[#6b7684]">전체 근로자</p>
-                  <p className="text-xl font-bold text-[#333d4b]">{workerCounts.total}명</p>
-                </div>
-              </CardContent>
-            </Card>
-            <StatusSummaryCard status="safe" count={workerCounts.safe} />
-            <StatusSummaryCard status="warning" count={workerCounts.warning} label="주의/실패" />
-            <StatusSummaryCard status="pending" count={workerCounts.pending} />
-          </div>
-
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
           <Card className="border border-border">
-            <CardHeader className="pb-3">
+            <CardContent className="flex items-center gap-3 p-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#e8f3ff] text-[#3182f6]">
+                <Users className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-sm text-[#6b7684]">전체 근로자</p>
+                <p className="text-xl font-bold text-[#333d4b]">{workerCounts.total}명</p>
+              </div>
+            </CardContent>
+          </Card>
+          <StatusSummaryCard status="safe" count={workerCounts.safe} />
+          <StatusSummaryCard status="warning" count={workerCounts.warning} label="주의/실패" />
+          <StatusSummaryCard status="pending" count={workerCounts.pending} />
+        </div>
+
+        <Card className="border border-border">
+          <CardHeader className="gap-4 pb-3">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <CardTitle className="text-lg text-[#333d4b]">근로자 목록</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto rounded-lg border border-[#e5e8eb]">
-                <div className="grid min-w-[900px] grid-cols-[1.1fr_1fr_1.3fr_0.8fr_0.7fr_1.1fr] gap-4 bg-[#f8f9fa] px-4 py-3 text-sm font-medium text-[#6b7684]">
-                  <span>이름</span>
-                  <span>생년월일</span>
-                  <span>SOP</span>
-                  <span>상태</span>
-                  <span>시도</span>
-                  <span>완료 시간</span>
-                </div>
+              <div className="grid gap-2 sm:grid-cols-2">
+                <Select value={selectedWorkerKey} onValueChange={setSelectedWorkerKey}>
+                  <SelectTrigger className="h-10 w-full min-w-[220px] border-[#e5e8eb] bg-white">
+                    <SelectValue placeholder="근로자 선택" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={ALL_WORKERS_VALUE}>전체 근로자</SelectItem>
+                    {workerFilterOptions.map((worker) => (
+                      <SelectItem key={worker.value} value={worker.value}>
+                        {worker.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
 
-                <div className="divide-y divide-[#e5e8eb]">
-                  {isLoadingWorkers && (
-                    <div className="px-4 py-10 text-center text-sm text-[#8b95a1]">작업자 목록을 불러오는 중입니다...</div>
-                  )}
+                <Select value={selectedSopId} onValueChange={setSelectedSopId}>
+                  <SelectTrigger className="h-10 w-full min-w-[220px] border-[#e5e8eb] bg-white">
+                    <SelectValue placeholder="SOP 선택" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={ALL_SOPS_VALUE}>전체 SOP</SelectItem>
+                    {sopFilterOptions.map((sop) => (
+                      <SelectItem key={sop.value} value={sop.value}>
+                        {sop.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto rounded-lg border border-[#e5e8eb]">
+              <div className="grid min-w-[900px] grid-cols-[1.1fr_1fr_1.3fr_0.8fr_0.7fr_1.1fr] gap-4 bg-[#f8f9fa] px-4 py-3 text-sm font-medium text-[#6b7684]">
+                <span>이름</span>
+                <span>생년월일</span>
+                <span>SOP</span>
+                <span>상태</span>
+                <span>시도</span>
+                <span>완료 시간</span>
+              </div>
 
-                  {!isLoadingWorkers &&
-                    filteredWorkers.map((worker) => {
-                      const config = statusConfig[worker.status]
+              <div className="divide-y divide-[#e5e8eb]">
+                {isLoadingWorkers && (
+                  <div className="px-4 py-10 text-center text-sm text-[#8b95a1]">작업자 목록을 불러오는 중입니다...</div>
+                )}
 
-                      return (
-                        <button
-                          key={worker.id}
-                          type="button"
-                          onClick={() => handleWorkerClick(worker)}
-                          className="grid min-w-[900px] w-full grid-cols-[1.1fr_1fr_1.3fr_0.8fr_0.7fr_1.1fr] items-center gap-4 px-4 py-4 text-left transition-colors hover:bg-[#f2f4f6]"
-                        >
-                          <span className="font-medium text-[#333d4b]">{worker.name}</span>
-                          <span className="text-sm text-[#6b7684]">{worker.birthDate}</span>
-                          <span className="truncate text-sm text-[#333d4b]">{worker.sopTitle}</span>
-                          <span>
-                            <Badge className={config.badgeClassName}>{config.label}</Badge>
-                          </span>
-                          <span className="text-sm text-[#333d4b]">{worker.attempts}회</span>
-                          <span className="text-sm text-[#6b7684]">{worker.completedAt ?? '-'}</span>
-                        </button>
-                      )
-                    })}
+                {!isLoadingWorkers &&
+                  filteredWorkers.map((worker) => {
+                    const config = statusConfig[worker.status]
+
+                    return (
+                      <button
+                        key={worker.id}
+                        type="button"
+                        onClick={() => handleWorkerClick(worker)}
+                        className="grid min-w-[900px] w-full grid-cols-[1.1fr_1fr_1.3fr_0.8fr_0.7fr_1.1fr] items-center gap-4 px-4 py-4 text-left transition-colors hover:bg-[#f2f4f6]"
+                      >
+                        <span className="font-medium text-[#333d4b]">{worker.name}</span>
+                        <span className="text-sm text-[#6b7684]">{worker.birthDate}</span>
+                        <span className="min-w-0 text-sm text-[#333d4b]">
+                          <span className="block truncate">{worker.sopTitle}</span>
+                          {worker.sopCount > 1 && <span className="block truncate text-xs text-[#8b95a1]">{worker.sopTitles.join(', ')}</span>}
+                        </span>
+                        <span>
+                          <Badge className={config.badgeClassName}>{config.label}</Badge>
+                        </span>
+                        <span className="text-sm text-[#333d4b]">{worker.attempts}회</span>
+                        <span className="text-sm text-[#6b7684]">{worker.completedAt ?? '-'}</span>
+                      </button>
+                    )
+                  })}
                 </div>
 
                 {!isLoadingWorkers && filteredWorkers.length === 0 && (
-                  <div className="px-4 py-10 text-center text-sm text-[#8b95a1]">검색 결과가 없습니다</div>
+                  <div className="px-4 py-10 text-center text-sm text-[#8b95a1]">조건에 맞는 근로자가 없습니다</div>
                 )}
               </div>
             </CardContent>

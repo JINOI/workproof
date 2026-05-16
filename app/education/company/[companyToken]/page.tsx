@@ -82,7 +82,8 @@ export default function CompanyEducationPage() {
 
   const handleStart = () => {
     if (!selectedToken) return
-    router.push(`/education/${selectedToken}`)
+    const returnTo = encodeURIComponent(`/education/company/${params.companyToken}`)
+    router.push(`/education/${selectedToken}?returnTo=${returnTo}`)
   }
 
   return (
