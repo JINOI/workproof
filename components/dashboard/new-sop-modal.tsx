@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { X, Upload, Loader2, QrCode, Share2, Check } from 'lucide-react'
+import { Upload, Loader2, Share2, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -13,6 +13,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import {
+  DEFAULT_WORKER_EDUCATION_PATH,
+  QrCodeLink,
+  useQrDestinationUrl,
+} from '@/components/qr-code-link'
 
 interface NewSOPModalProps {
   open: boolean
@@ -29,6 +34,7 @@ const languages = [
 ]
 
 export function NewSOPModal({ open, onOpenChange }: NewSOPModalProps) {
+  const shareUrl = useQrDestinationUrl(DEFAULT_WORKER_EDUCATION_PATH)
   const [step, setStep] = useState<Step>('upload')
   const [selectedLanguages, setSelectedLanguages] = useState<string[]>(['ko', 'vi'])
   const [file, setFile] = useState<File | null>(null)
@@ -53,6 +59,23 @@ export function NewSOPModal({ open, onOpenChange }: NewSOPModalProps) {
     setStep('upload')
     setFile(null)
     onOpenChange(false)
+  }
+
+  const handleShareQr = async () => {
+    if (!shareUrl) return
+    try {
+      if (typeof navigator !== 'undefined' && navigator.share) {
+        await navigator.share({
+          title: 'WorkProof 안전 교육',
+          text: '아래 링크에서 교육을 진행해 주세요.',
+          url: shareUrl,
+        })
+        return
+      }
+      await navigator.clipboard.writeText(shareUrl)
+    } catch {
+      // 사용자가 공유 취소 또는 clipboard 거부
+    }
   }
 
   const toggleLanguage = (langId: string) => {
@@ -146,9 +169,7 @@ export function NewSOPModal({ open, onOpenChange }: NewSOPModalProps) {
         {step === 'complete' && (
           <div className="py-6 space-y-6">
             <div className="flex justify-center">
-              <div className="w-48 h-48 bg-[#f2f4f6] rounded-lg flex items-center justify-center">
-                <QrCode className="h-32 w-32 text-[#333d4b]" />
-              </div>
+              <QrCodeLink path={DEFAULT_WORKER_EDUCATION_PATH} size={176} />
             </div>
 
             <div className="text-center space-y-2">
@@ -172,7 +193,12 @@ export function NewSOPModal({ open, onOpenChange }: NewSOPModalProps) {
               >
                 닫기
               </Button>
-              <Button className="flex-1 bg-[#3182f6] hover:bg-[#1b64da] text-white">
+              <Button
+                type="button"
+                className="flex-1 bg-[#3182f6] hover:bg-[#1b64da] text-white"
+                onClick={handleShareQr}
+                disabled={!shareUrl}
+              >
                 <Share2 className="h-4 w-4 mr-2" />
                 QR 공유하기
               </Button>

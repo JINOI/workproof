@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Shield, QrCode, FileText, CheckCircle2 } from 'lucide-react'
+import { DEFAULT_WORKER_EDUCATION_PATH, QrCodeLink } from '@/components/qr-code-link'
 
 export default function LandingPage() {
   const router = useRouter()
@@ -45,24 +46,31 @@ export default function LandingPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-8">
-          <div className="flex flex-col items-center gap-2">
-            <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center">
-              <FileText className="h-5 w-5 text-[#3182f6]" />
+        <div className="space-y-10">
+          <div className="flex items-center gap-8">
+            <div className="flex flex-col items-center gap-2">
+              <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center">
+                <FileText className="h-5 w-5 text-[#3182f6]" />
+              </div>
+              <span className="text-xs text-[#6b7684]">1.문서와 파일</span>
             </div>
-            <span className="text-xs text-[#6b7684]">1.문서와 파일</span>
+            <div className="flex flex-col items-center gap-2">
+              <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center">
+                <QrCode className="h-5 w-5 text-[#3182f6]" />
+              </div>
+              <span className="text-xs text-[#6b7684]">QR 퀵스 접속</span>
+            </div>
+            <div className="flex flex-col items-center gap-2">
+              <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center">
+                <CheckCircle2 className="h-5 w-5 text-[#3182f6]" />
+              </div>
+              <span className="text-xs text-[#6b7684]">증빙 리포트</span>
+            </div>
           </div>
-          <div className="flex flex-col items-center gap-2">
-            <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center">
-              <QrCode className="h-5 w-5 text-[#3182f6]" />
-            </div>
-            <span className="text-xs text-[#6b7684]">QR 퀵스 접속</span>
-          </div>
-          <div className="flex flex-col items-center gap-2">
-            <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center">
-              <CheckCircle2 className="h-5 w-5 text-[#3182f6]" />
-            </div>
-            <span className="text-xs text-[#6b7684]">증빙 리포트</span>
+
+          <div className="flex flex-col items-start gap-3">
+            <p className="text-sm font-medium text-[#333d4b]">근로자 교육 화면 QR</p>
+            <QrCodeLink path={DEFAULT_WORKER_EDUCATION_PATH} size={168} />
           </div>
         </div>
       </div>
@@ -73,7 +81,7 @@ export default function LandingPage() {
           <Button 
             variant="ghost" 
             className="text-[#3182f6]"
-            onClick={() => router.push('/education/sop-001')}
+            onClick={() => router.push(DEFAULT_WORKER_EDUCATION_PATH)}
           >
             근로자 QR 체험하기 &rarr;
           </Button>
@@ -128,6 +136,11 @@ export default function LandingPage() {
               </form>
             </CardContent>
           </Card>
+        </div>
+
+        <div className="lg:hidden flex flex-col items-center gap-3 pb-10 px-6">
+          <p className="text-sm font-medium text-[#333d4b]">근로자 교육 화면 QR</p>
+          <QrCodeLink path={DEFAULT_WORKER_EDUCATION_PATH} size={156} />
         </div>
       </div>
     </div>
