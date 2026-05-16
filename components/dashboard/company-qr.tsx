@@ -162,9 +162,9 @@ export function CompanyQrDialogButton({ disabled = false }: { disabled?: boolean
 
   return (
     <>
-      <Button type="button" variant="outline" className="border-[#e5e8eb]" disabled={disabled} onClick={() => setOpen(true)}>
+      <Button type="button" variant="outline" className="w-full whitespace-nowrap border-[#e5e8eb] sm:w-auto" disabled={disabled} onClick={() => setOpen(true)}>
         <QrCode className="mr-2 h-4 w-4" />
-        QR 보기
+        회사 QR코드 확인하기
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-md">
