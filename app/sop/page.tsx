@@ -7,6 +7,7 @@ import { CompanyQrDialogButton } from '@/components/dashboard/company-qr'
 import { DashboardLayout } from '@/components/dashboard/dashboard-layout'
 import { NewSOPModal } from '@/components/dashboard/new-sop-modal'
 import { type DashboardSop, SOPList } from '@/components/dashboard/sop-list'
+import { getClientAuthenticatedUser } from '@/lib/auth/client-session'
 import { createClient } from '@/lib/supabase/client'
 
 type ApiSop = {
@@ -54,9 +55,7 @@ export default function SOPManagementPage() {
 
     async function loadSops() {
       const supabase = createClient()
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+      const user = await getClientAuthenticatedUser(supabase)
 
       if (!isMounted) {
         return
