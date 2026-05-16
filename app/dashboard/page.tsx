@@ -3,12 +3,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
-import { CompanyQrDialogButton } from '@/components/dashboard/company-qr'
+import { CompanyQrDialogButton, useCompanyQr } from '@/components/dashboard/company-qr'
 import { DashboardLayout } from '@/components/dashboard/dashboard-layout'
 import { NewSOPModal } from '@/components/dashboard/new-sop-modal'
 import { type DashboardSop, SOPList } from '@/components/dashboard/sop-list'
 import { StatsCards } from '@/components/dashboard/stats-cards'
 import { createClient } from '@/lib/supabase/client'
+import { formatDashboardTitle } from '@/lib/workproof/dashboard'
 
 type ApiSop = {
   id: string
@@ -50,6 +51,7 @@ function toDashboardSop(sop: ApiSop): DashboardSop {
 
 export default function DashboardPage() {
   const router = useRouter()
+  const { companyQr } = useCompanyQr()
   const [isCheckingSession, setIsCheckingSession] = useState(true)
   const [isLoadingSops, setIsLoadingSops] = useState(false)
   const [sops, setSops] = useState<DashboardSop[]>([])
@@ -151,7 +153,7 @@ export default function DashboardPage() {
     >
       <main className="flex-1 space-y-6 p-6">
         <div>
-          <h1 className="mb-1 text-2xl font-bold text-[#333d4b]">관리자 대시보드</h1>
+          <h1 className="mb-1 text-2xl font-bold text-[#333d4b]">{formatDashboardTitle(companyQr?.organizationName)}</h1>
           <p className="text-[#6b7684]">현재 계정에 등록된 SOP와 작업자 이수 현황만 표시합니다.</p>
         </div>
 
