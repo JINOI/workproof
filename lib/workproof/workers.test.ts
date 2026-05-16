@@ -3,6 +3,7 @@ import test from 'node:test'
 
 import {
   buildLatestWorkerRows,
+  buildWorkerSopRows,
   buildWorkerRows,
   filterWorkerLogs,
   getSopFilterOptions,
@@ -110,6 +111,22 @@ test('groups education logs by worker name and birth date', () => {
       ['박 보건', '1992-02-02', 1, '지게차 안전', 'safe'],
     ],
   )
+})
+
+test('separates worker rows by SOP for the workers table', () => {
+  const rows = buildWorkerSopRows(logs)
+
+  assert.equal(rows.length, 3)
+  assert.deepEqual(
+    rows.map((row) => [row.name, row.birthDate, row.sopCount, row.sopTitle, row.status]),
+    [
+      ['김 안전', '1990-01-01', 1, '지게차 안전', 'safe'],
+      ['김 안전', '1990-01-01', 1, 'LOTO 절차', 'warning'],
+      ['박 보건', '1992-02-02', 1, '지게차 안전', 'safe'],
+    ],
+  )
+
+  assert.equal(buildWorkerRows(logs).length, 2)
 })
 
 test('builds stable worker and safety management guide dropdown options', () => {

@@ -14,7 +14,6 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { DEFAULT_WORKER_EDUCATION_PATH } from '@/components/qr-code-link'
 import { type AuthMode, validateAuthForm } from '@/lib/auth/validation'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
@@ -133,40 +132,29 @@ export default function LandingPage() {
       <div className="relative z-10 flex min-h-screen flex-col">
         <header className="landing-nav">
           <nav className="landing-nav-float landing-lift" aria-label="상단 메뉴">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 shrink-0 rounded-xl px-2.5 text-[var(--brand-blue)] hover:bg-white/60 sm:h-9 sm:px-3"
-            onClick={() => router.push(DEFAULT_WORKER_EDUCATION_PATH)}
-          >
-            <span className="hidden sm:inline">근로자 QR 체험하기</span>
-            <span className="sm:hidden">QR 체험</span>
-            <span aria-hidden>&rarr;</span>
-          </Button>
+            <div className="flex items-center rounded-xl bg-white/40 p-0.5" role="tablist" aria-label="관리자 인증">
+              {authTabs.map((tab) => {
+                const isActive = authOpen && mode === tab.value
 
-          <div className="flex items-center rounded-xl bg-white/40 p-0.5" role="tablist" aria-label="관리자 인증">
-            {authTabs.map((tab) => {
-              const isActive = authOpen && mode === tab.value
-
-              return (
-                <button
-                  key={tab.value}
-                  type="button"
-                  role="tab"
-                  aria-selected={isActive}
-                  className={cn(
-                    'rounded-[14px] px-3 py-1.5 text-sm font-medium transition-all duration-200 ease-in-out sm:px-4 sm:py-2',
-                    isActive
-                      ? 'bg-[var(--brand-blue)] text-white shadow-sm'
-                      : 'text-[#6b7684] hover:bg-white/80 hover:text-[#333d4b]',
-                  )}
-                  onClick={() => openAuth(tab.value)}
-                >
-                  {tab.label}
-                </button>
-              )
-            })}
-          </div>
+                return (
+                  <button
+                    key={tab.value}
+                    type="button"
+                    role="tab"
+                    aria-selected={isActive}
+                    className={cn(
+                      'rounded-[14px] px-3 py-1.5 text-sm font-medium transition-all duration-200 ease-in-out sm:px-4 sm:py-2',
+                      isActive
+                        ? 'bg-[var(--brand-blue)] text-white shadow-sm'
+                        : 'text-[#6b7684] hover:bg-white/80 hover:text-[#333d4b]',
+                    )}
+                    onClick={() => openAuth(tab.value)}
+                  >
+                    {tab.label}
+                  </button>
+                )
+              })}
+            </div>
           </nav>
         </header>
 
