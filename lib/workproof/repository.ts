@@ -270,26 +270,26 @@ export async function submitEducationResult(input: SubmitEducationPayload) {
   const passed = input.passed ?? wrongQuestionIds.length === 0
   const status = !passed ? 'failed' : input.attempts <= 3 && wrongQuestionIds.length === 0 ? 'safe' : 'warning'
 
-  const { data, error } = await supabase
-    .from('education_logs')
-    .insert({
-      sop_id: input.sopId,
-      worker_name: input.workerName,
-      worker_birth_date: input.workerBirthDate,
-      language: input.language ?? 'ko',
-      status,
-      attempts: input.attempts,
-      completed_at: new Date().toISOString(),
-      elapsed_seconds: input.elapsedSeconds,
-      wrong_question_ids: wrongQuestionIds,
-      answers: input.answers,
-    })
-    .select()
-    .single()
+  const { error } = await supabase.from('education_logs').insert({
+    sop_id: input.sopId,
+    worker_name: input.workerName,
+    worker_birth_date: input.workerBirthDate,
+    language: input.language ?? 'ko',
+    status,
+    attempts: input.attempts,
+    completed_at: new Date().toISOString(),
+    elapsed_seconds: input.elapsedSeconds,
+    wrong_question_ids: wrongQuestionIds,
+    answers: input.answers,
+  })
 
   if (error) {
     throw error
   }
 
-  return data
+  return {
+    status,
+    attempts: input.attempts,
+    wrongQuestionIds,
+  }
 }
