@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto'
 import { createClient } from '@/lib/supabase/server'
 import type { Json } from '@/lib/supabase/database.types'
 import type { QuizQuestionInsert, SopInsert, SubmitEducationPayload } from './types'
+import { summarizeLatestWorkerCompletion, type WorkerLogRow } from './workers'
 
 type NewQuizQuestionInput = Omit<QuizQuestionInsert, 'sop_id' | 'organization_name'>
 type FrequentSopTemplateQuestion = {
@@ -20,6 +21,31 @@ type CompanyProfile = {
   id: string
   organization_name: string | null
   company_public_token: string
+}
+
+type SopListEducationLog = {
+  id: string
+  worker_name: string
+  worker_birth_date: string
+  status: WorkerLogRow['status']
+  attempts: number
+  completed_at: string | null
+  wrong_question_ids: string[]
+}
+
+function toSopWorkerLogRow(log: SopListEducationLog, sop: { id: string; title: string }): WorkerLogRow {
+  return {
+    id: log.id,
+    name: log.worker_name,
+    birthDate: log.worker_birth_date,
+    status: log.status,
+    attempts: log.attempts,
+    completedAt: log.completed_at,
+    completedAtSortValue: log.completed_at,
+    wrongAnswers: log.wrong_question_ids,
+    sopId: sop.id,
+    sopTitle: sop.title,
+  }
 }
 
 export async function getCurrentUser() {
@@ -43,7 +69,7 @@ export async function listSops() {
 
   const { data, error } = await supabase
     .from('sops')
-    .select('*, education_logs(status)')
+    .select('*, education_logs(id, worker_name, worker_birth_date, status, attempts, completed_at, wrong_question_ids)')
     .eq('owner_id', user.id)
     .order('created_at', { ascending: false })
 
@@ -52,14 +78,16 @@ export async function listSops() {
   }
 
   return data.map((sop) => {
-    const totalWorkers = sop.education_logs.length
-    const completedWorkers = sop.education_logs.filter((log) => log.status === 'safe' || log.status === 'warning').length
+    const { education_logs, ...sopFields } = sop
+    const { totalWorkers, completedWorkers, completionRate } = summarizeLatestWorkerCompletion(
+      education_logs.map((log) => toSopWorkerLogRow(log, sop)),
+    )
 
     return {
-      ...sop,
+      ...sopFields,
       totalWorkers,
       completedWorkers,
-      completionRate: totalWorkers === 0 ? 0 : Math.round((completedWorkers / totalWorkers) * 100),
+      completionRate,
     }
   })
 }

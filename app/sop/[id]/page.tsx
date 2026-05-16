@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import type { Json } from '@/lib/supabase/database.types'
 import { SUPPORTED_LANGUAGES } from '@/lib/workproof/languages'
+import { buildLatestWorkerRows, type WorkerLogRow, type WorkerSummaryRow } from '@/lib/workproof/workers'
 
 type EducationLog = {
   id: string
@@ -67,6 +68,8 @@ type ApiSopDetail = {
   education_logs: EducationLog[]
 }
 
+type WorkerRow = WorkerSummaryRow
+
 function formatDateTime(value: string | null) {
   if (!value) return null
 
@@ -87,7 +90,7 @@ function formatDate(value: string) {
   }).format(new Date(value))
 }
 
-function toWorkerDetail(log: EducationLog): WorkerDetail {
+function toWorkerLogRow(log: EducationLog, sop: Pick<ApiSopDetail, 'id' | 'title'>): WorkerLogRow {
   return {
     id: log.id,
     name: log.worker_name,
@@ -95,7 +98,10 @@ function toWorkerDetail(log: EducationLog): WorkerDetail {
     status: log.status,
     attempts: log.attempts,
     completedAt: formatDateTime(log.completed_at),
+    completedAtSortValue: log.completed_at,
     wrongAnswers: log.wrong_question_ids,
+    sopId: sop.id,
+    sopTitle: sop.title,
   }
 }
 
@@ -362,7 +368,7 @@ export default function SOPDetailPage() {
   const params = useParams<{ id: string }>()
   const router = useRouter()
   const [searchValue, setSearchValue] = useState('')
-  const [selectedWorker, setSelectedWorker] = useState<WorkerDetail | null>(null)
+  const [selectedWorker, setSelectedWorker] = useState<WorkerRow | null>(null)
   const [showWorkerModal, setShowWorkerModal] = useState(false)
   const [sop, setSop] = useState<ApiSopDetail | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -413,7 +419,7 @@ export default function SOPDetailPage() {
     }
   }, [params.id, router])
 
-  const workers = useMemo(() => sop?.education_logs.map(toWorkerDetail) ?? [], [sop])
+  const workers = useMemo(() => (sop ? buildLatestWorkerRows(sop.education_logs.map((log) => toWorkerLogRow(log, sop))) : []), [sop])
   const filteredWorkers = useMemo(
     () => workers.filter((worker) => worker.name.toLowerCase().includes(searchValue.toLowerCase())),
     [searchValue, workers],
@@ -422,7 +428,7 @@ export default function SOPDetailPage() {
   const warningWorkers = workers.filter((worker) => worker.status === 'warning' || worker.status === 'failed')
   const pendingWorkers = workers.filter((worker) => worker.status === 'pending')
 
-  const handleWorkerClick = (worker: WorkerDetail) => {
+  const handleWorkerClick = (worker: WorkerRow) => {
     setSelectedWorker(worker)
     setShowWorkerModal(true)
   }

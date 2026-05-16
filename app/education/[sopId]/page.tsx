@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { AlertTriangle, ArrowLeft, Ban, Check, ChevronRight, HardHat, Heart, Shield, ShieldCheck, X } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -160,6 +160,10 @@ function languageLabel(code: string) {
 
 export default function EducationPage() {
   const params = useParams<{ sopId: string }>()
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const returnToParam = searchParams.get('returnTo')
+  const returnTo = returnToParam?.startsWith('/education/company/') ? returnToParam : '/'
   const [education, setEducation] = useState<EducationPayload | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -673,6 +677,10 @@ export default function EducationPage() {
                     </span>
                   </div>
                 </div>
+
+                <Button onClick={() => router.push(returnTo)} variant="outline" className="h-12 w-full border-[#e5e8eb] bg-white text-[#333d4b] hover:bg-[#f2f4f6]">
+                  처음으로 돌아가기
+                </Button>
               </CardContent>
             </Card>
           )}
