@@ -18,7 +18,7 @@ interface DashboardHeaderProps {
 export function DashboardHeader({
   searchValue = '',
   onSearchChange,
-  placeholder = 'SOP 제목 또는 작업자를 검색하세요',
+  placeholder = '안전 관리 가이드 제목 또는 작업자를 검색하세요',
   headerActions,
 }: DashboardHeaderProps) {
   const { isOpen, toggleSidebar } = useDashboardSidebar()

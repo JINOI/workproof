@@ -62,7 +62,7 @@ export function useQrBaseUrl() {
   return { base, needsPhoneSetup, ready }
 }
 
-/** Demo SOP used on 랜딩·모달; 스캔 시 교육·퀴즈 체험 화면으로 연결 */
+/** Demo safety management guide used on 랜딩·모달; 스캔 시 교육·퀴즈 체험 화면으로 연결 */
 export const DEFAULT_WORKER_EDUCATION_PATH = '/education/sop-001'
 
 type QrCodeLinkProps = {

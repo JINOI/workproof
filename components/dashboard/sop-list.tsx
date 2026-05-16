@@ -30,7 +30,7 @@ export function SOPList({ sops, isLoading = false, onNewSOP, onSOPDeleted, onDel
   const [deletingSopId, setDeletingSopId] = useState<string | null>(null)
 
   async function handleDeleteSop(sop: DashboardSop) {
-    const confirmed = window.confirm(`"${sop.title}" SOP를 삭제할까요?\n퀴즈와 근로자 이수 기록도 함께 삭제됩니다.`)
+    const confirmed = window.confirm(`"${sop.title}" 안전 관리 가이드를 삭제할까요?\n퀴즈와 근로자 이수 기록도 함께 삭제됩니다.`)
 
     if (!confirmed) {
       return
@@ -46,12 +46,12 @@ export function SOPList({ sops, isLoading = false, onNewSOP, onSOPDeleted, onDel
       const payload = (await response.json().catch(() => ({}))) as { error?: string }
 
       if (!response.ok) {
-        throw new Error(payload.error ?? 'SOP를 삭제하지 못했습니다.')
+        throw new Error(payload.error ?? '안전 관리 가이드를 삭제하지 못했습니다.')
       }
 
       onSOPDeleted?.(sop.id)
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'SOP를 삭제하지 못했습니다.'
+      const message = error instanceof Error ? error.message : '안전 관리 가이드를 삭제하지 못했습니다.'
 
       if (onDeleteError) {
         onDeleteError(message)
@@ -66,7 +66,7 @@ export function SOPList({ sops, isLoading = false, onNewSOP, onSOPDeleted, onDel
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-[#333d4b]">SOP 목록</h2>
+        <h2 className="text-lg font-semibold text-[#333d4b]">안전 관리 가이드 목록</h2>
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -78,7 +78,7 @@ export function SOPList({ sops, isLoading = false, onNewSOP, onSOPDeleted, onDel
             <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#e8f3ff] transition-colors">
               <Plus className="h-6 w-6 text-[#3182f6]" />
             </div>
-            <h3 className="mb-1 font-medium text-[#333d4b]">새 SOP 등록</h3>
+            <h3 className="mb-1 font-medium text-[#333d4b]">새 안전 관리 가이드 등록</h3>
             <p className="text-sm text-[#8b95a1]">PDF 또는 문서를 업로드해 교육 콘텐츠를 만듭니다.</p>
           </CardContent>
         </Card>
@@ -86,7 +86,7 @@ export function SOPList({ sops, isLoading = false, onNewSOP, onSOPDeleted, onDel
         {isLoading && (
           <Card className="border border-border">
             <CardContent className="flex min-h-[180px] items-center justify-center p-6 text-sm text-[#6b7684]">
-              SOP를 불러오는 중입니다...
+              안전 관리 가이드를 불러오는 중입니다...
             </CardContent>
           </Card>
         )}
@@ -95,8 +95,8 @@ export function SOPList({ sops, isLoading = false, onNewSOP, onSOPDeleted, onDel
           <Card className="border border-border">
             <CardContent className="flex min-h-[180px] flex-col items-center justify-center p-6 text-center">
               <FileText className="mb-3 h-8 w-8 text-[#8b95a1]" />
-              <h3 className="mb-1 font-medium text-[#333d4b]">아직 등록된 SOP가 없습니다.</h3>
-              <p className="text-sm text-[#8b95a1]">새 계정에서는 예시 SOP가 표시되지 않습니다.</p>
+              <h3 className="mb-1 font-medium text-[#333d4b]">아직 등록된 안전 관리 가이드가 없습니다.</h3>
+              <p className="text-sm text-[#8b95a1]">새 계정에서는 예시 안전 관리 가이드가 표시되지 않습니다.</p>
             </CardContent>
           </Card>
         )}
@@ -110,7 +110,7 @@ export function SOPList({ sops, isLoading = false, onNewSOP, onSOPDeleted, onDel
                 size="icon-sm"
                 className="absolute right-3 top-3 z-10 text-[#8b95a1] hover:bg-red-50 hover:text-red-600"
                 aria-label={`${sop.title} 삭제`}
-                title="SOP 삭제"
+                title="안전 관리 가이드 삭제"
                 disabled={deletingSopId !== null}
                 onClick={() => handleDeleteSop(sop)}
               >

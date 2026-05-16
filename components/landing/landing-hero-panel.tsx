@@ -6,7 +6,7 @@ import { SafeBridgeLogo } from '@/components/brand/safebridge-logo'
 import { cn } from '@/lib/utils'
 
 const featureItems = [
-  { icon: FileText, label: 'SOP 등록' },
+  { icon: FileText, label: '안전 관리 가이드 등록' },
   { icon: QrCode, label: 'QR 교육 링크' },
   { icon: CheckCircle2, label: '이수 기록 저장' },
 ] as const
@@ -34,7 +34,7 @@ export function LandingHeroPanel() {
           </span>
         </h1>
         <p className="landing-hero-line text-base text-[#6b7684] lg:text-lg" style={{ animationDelay: '0.64s' }}>
-          SOP 문서를 교육 카드와 퀴즈로 정리하고, 근로자는 QR 링크로 교육을 완료합니다. 관리자는 대시보드에서 이수
+          안전 관리 가이드 문서를 교육 카드와 퀴즈로 정리하고, 근로자는 QR 링크로 교육을 완료합니다. 관리자는 대시보드에서 이수
           상태를 확인할 수 있습니다.
         </p>
       </div>

@@ -97,11 +97,11 @@ export default function DashboardPage() {
         ])
 
         if (!sopsResponse.ok) {
-          throw new Error('SOP 목록을 불러오지 못했습니다.')
+          throw new Error('안전 관리 가이드 목록을 불러오지 못했습니다.')
         }
 
         if (!templatesResponse.ok) {
-          throw new Error('자주 찾는 SOP를 불러오지 못했습니다.')
+          throw new Error('자주 찾는 안전 관리 가이드를 불러오지 못했습니다.')
         }
 
         const sopsPayload = (await sopsResponse.json()) as { sops: ApiSop[] }
@@ -114,7 +114,7 @@ export default function DashboardPage() {
         }
       } catch (error) {
         if (isMounted) {
-          setLoadError(error instanceof Error ? error.message : 'SOP 목록을 불러오지 못했습니다.')
+          setLoadError(error instanceof Error ? error.message : '안전 관리 가이드 목록을 불러오지 못했습니다.')
           setSops([])
         }
       } finally {
@@ -169,7 +169,7 @@ export default function DashboardPage() {
       const payload = (await response.json().catch(() => ({}))) as { sop?: ApiSop; error?: string }
 
       if (!response.ok || !payload.sop) {
-        throw new Error(payload.error ?? '자주 찾는 SOP를 추가하지 못했습니다.')
+        throw new Error(payload.error ?? '자주 찾는 안전 관리 가이드를 추가하지 못했습니다.')
       }
 
       setFrequentSopTemplates((currentTemplates) =>
@@ -179,7 +179,7 @@ export default function DashboardPage() {
       )
       setRefreshToken((value) => value + 1)
     } catch (error) {
-      setLoadError(error instanceof Error ? error.message : '자주 찾는 SOP를 추가하지 못했습니다.')
+      setLoadError(error instanceof Error ? error.message : '자주 찾는 안전 관리 가이드를 추가하지 못했습니다.')
     } finally {
       setAddingTemplateKey(null)
     }
@@ -202,7 +202,7 @@ export default function DashboardPage() {
       <main className="flex-1 space-y-6 p-6">
         <div>
           <h1 className="mb-1 text-2xl font-bold text-[#333d4b]">관리자 대시보드</h1>
-          <p className="text-[#6b7684]">현재 계정에 등록된 SOP와 작업자 이수 현황만 표시합니다.</p>
+          <p className="text-[#6b7684]">현재 계정에 등록된 안전 관리 가이드와 작업자 이수 현황만 표시합니다.</p>
         </div>
 
         {loadError && <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{loadError}</p>}

@@ -213,7 +213,7 @@ export default function WorkersPage() {
     <DashboardLayout
       searchValue={searchValue}
       onSearchChange={setSearchValue}
-      placeholder="근로자 이름, 생년월일, SOP 또는 상태로 검색..."
+      placeholder="근로자 이름, 생년월일, 안전 관리 가이드 또는 상태로 검색..."
     >
         <main className="flex-1 space-y-6 p-6">
           <div>
@@ -249,7 +249,7 @@ export default function WorkersPage() {
                 <div className="grid min-w-[900px] grid-cols-[1.1fr_1fr_1.3fr_0.8fr_0.7fr_1.1fr] gap-4 bg-[#f8f9fa] px-4 py-3 text-sm font-medium text-[#6b7684]">
                   <span>이름</span>
                   <span>생년월일</span>
-                  <span>SOP</span>
+                  <span>안전 관리 가이드</span>
                   <span>상태</span>
                   <span>시도</span>
                   <span>완료 시간</span>

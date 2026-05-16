@@ -95,7 +95,7 @@ export async function POST(request: Request) {
       const file = formData.get('file')
 
       if (!(file instanceof File)) {
-        return NextResponse.json({ error: 'SOP 문서 파일을 업로드하세요.' }, { status: 400 })
+        return NextResponse.json({ error: '안전 관리 가이드 문서 파일을 업로드하세요.' }, { status: 400 })
       }
 
       if (file.size > MAX_UPLOAD_BYTES) {
@@ -155,7 +155,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ sop }, { status: 201 })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'SOP를 생성하지 못했습니다.'
+    const message = error instanceof Error ? error.message : '안전 관리 가이드를 생성하지 못했습니다.'
     const status = message.includes('Authentication') ? 401 : 500
     return NextResponse.json({ error: message }, { status })
   }

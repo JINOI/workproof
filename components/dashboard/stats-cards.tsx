@@ -13,7 +13,7 @@ export function StatsCards({ activeSOPs, totalWorkers, completionRate, pendingWo
   const stats = [
     {
       icon: FileText,
-      label: '등록된 SOP',
+      label: '등록된 안전 관리 가이드',
       value: activeSOPs,
       suffix: '개',
       iconBg: 'bg-[#e8f3ff]',

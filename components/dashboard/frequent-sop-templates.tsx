@@ -43,9 +43,9 @@ export function FrequentSopTemplates({
             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#e8f3ff] text-[#3182f6]">
               <Sparkles className="h-4 w-4" />
             </span>
-            <h2 className="text-lg font-semibold text-[#1f2d3d]">자주 찾는 SOP</h2>
+            <h2 className="text-lg font-semibold text-[#1f2d3d]">자주 찾는 안전 관리 가이드</h2>
           </div>
-          <p className="text-sm text-[#6b7684]">기본 안전교육 SOP를 현재 관리자 목록에 바로 추가할 수 있습니다.</p>
+          <p className="text-sm text-[#6b7684]">기본 안전교육 가이드를 현재 관리자 목록에 바로 추가할 수 있습니다.</p>
         </div>
       </div>
 
@@ -74,7 +74,7 @@ export function FrequentSopTemplates({
                     <div className="min-w-0">
                       <h3 className="font-semibold text-[#253142]">{template.title}</h3>
                       <p className="mt-1 line-clamp-2 text-sm leading-5 text-[#6b7684]">
-                        {template.description ?? '현장에서 자주 사용하는 기본 SOP입니다.'}
+                        {template.description ?? '현장에서 자주 사용하는 기본 안전 관리 가이드입니다.'}
                       </p>
                     </div>
                   </div>
@@ -90,7 +90,7 @@ export function FrequentSopTemplates({
                     {isAdding && <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />}
                     {!isAdding && isAdded && <Check className="mr-2 h-4 w-4" />}
                     {!isAdding && !isAdded && <PlusCircle className="mr-2 h-4 w-4" />}
-                    {isAdded ? '이미 추가됨' : 'SOP 목록에 추가'}
+                    {isAdded ? '이미 추가됨' : '안전 관리 가이드 목록에 추가'}
                   </Button>
                 </CardContent>
               </Card>
@@ -100,7 +100,7 @@ export function FrequentSopTemplates({
         {!isLoading && templates.length === 0 && (
           <Card className="border border-[#dbe7ff] bg-white/80 lg:col-span-3">
             <CardContent className="flex min-h-[140px] items-center justify-center p-5 text-sm text-[#6b7684]">
-              자주 찾는 SOP 템플릿이 아직 준비되지 않았습니다.
+              자주 찾는 안전 관리 가이드 템플릿이 아직 준비되지 않았습니다.
             </CardContent>
           </Card>
         )}

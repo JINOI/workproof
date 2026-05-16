@@ -77,7 +77,7 @@ export default function SOPManagementPage() {
         })
 
         if (!response.ok) {
-          throw new Error('SOP 목록을 불러오지 못했습니다.')
+          throw new Error('안전 관리 가이드 목록을 불러오지 못했습니다.')
         }
 
         const payload = (await response.json()) as { sops: ApiSop[] }
@@ -88,7 +88,7 @@ export default function SOPManagementPage() {
         }
       } catch (error) {
         if (isMounted) {
-          setLoadError(error instanceof Error ? error.message : 'SOP 목록을 불러오지 못했습니다.')
+          setLoadError(error instanceof Error ? error.message : '안전 관리 가이드 목록을 불러오지 못했습니다.')
           setSops([])
         }
       } finally {
@@ -129,13 +129,13 @@ export default function SOPManagementPage() {
     <DashboardLayout
       searchValue={searchValue}
       onSearchChange={setSearchValue}
-      placeholder="SOP 제목 또는 설명으로 검색..."
+      placeholder="안전 관리 가이드 제목 또는 설명으로 검색..."
       headerActions={<CompanyQrDialogButton />}
     >
       <main className="flex-1 space-y-6 p-6">
         <div>
-          <h1 className="mb-1 text-2xl font-bold text-[#333d4b]">SOP 관리</h1>
-          <p className="text-[#6b7684]">등록한 SOP 목록을 확인하고 필요한 문서를 검색하세요.</p>
+          <h1 className="mb-1 text-2xl font-bold text-[#333d4b]">안전 관리 가이드 관리</h1>
+          <p className="text-[#6b7684]">등록한 안전 관리 가이드 목록을 확인하고 필요한 문서를 검색하세요.</p>
         </div>
 
         {loadError && <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{loadError}</p>}

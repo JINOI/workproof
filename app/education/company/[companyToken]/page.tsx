@@ -95,7 +95,7 @@ export default function CompanyEducationPage() {
             </div>
             <p className="mb-2 text-sm font-medium text-[#3182f6]">WorkProof 회사 교육 QR</p>
             <h1 className="text-xl font-bold text-[#333d4b]">교육자료를 선택하세요</h1>
-            <p className="mt-2 text-sm text-[#6b7684]">현장에서 진행할 SOP 교육을 선택하면 교육자료와 퀴즈가 시작됩니다.</p>
+            <p className="mt-2 text-sm text-[#6b7684]">현장에서 진행할 안전 관리 가이드 교육을 선택하면 교육자료와 퀴즈가 시작됩니다.</p>
           </div>
 
           {isLoading && (
@@ -110,7 +110,7 @@ export default function CompanyEducationPage() {
             <div className="rounded-lg border border-dashed border-[#e5e8eb] p-8 text-center">
               <FileText className="mx-auto mb-3 h-8 w-8 text-[#8b95a1]" />
               <h2 className="mb-1 font-medium text-[#333d4b]">진행 가능한 교육자료가 없습니다.</h2>
-              <p className="text-sm text-[#6b7684]">관리자가 SOP를 등록하면 이 QR에서 선택할 수 있습니다.</p>
+              <p className="text-sm text-[#6b7684]">관리자가 안전 관리 가이드를 등록하면 이 QR에서 선택할 수 있습니다.</p>
             </div>
           )}
 
