@@ -18,6 +18,7 @@ export type QuizAnswerPayload = {
   questionId: string
   selectedAnswer: Json
   isCorrect: boolean
+  attempt?: number
 }
 
 export type SubmitEducationPayload = {
@@ -27,5 +28,6 @@ export type SubmitEducationPayload = {
   language?: string
   attempts: number
   elapsedSeconds: number
+  passed?: boolean
   answers: QuizAnswerPayload[]
 }

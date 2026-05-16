@@ -1,53 +1,97 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Check, Loader2, Share2, Upload } from 'lucide-react'
 
-import { DEFAULT_WORKER_EDUCATION_PATH, QrCodeLink, useQrDestinationUrl } from '@/components/qr-code-link'
+import { QrCodeLink, useQrDestinationUrl } from '@/components/qr-code-link'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { SUPPORTED_LANGUAGES } from '@/lib/workproof/languages'
 
 interface NewSOPModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  onCreated?: () => void
 }
 
 type Step = 'upload' | 'processing' | 'complete'
 
-const languages = [
-  { id: 'ko', label: '한국어' },
-  { id: 'vi', label: '베트남어' },
-  { id: 'zh', label: '중국어' },
-  { id: 'th', label: '태국어' },
-]
+type CreatedSop = {
+  id: string
+  title: string
+  public_token: string
+  languages: string[]
+}
 
-export function NewSOPModal({ open, onOpenChange }: NewSOPModalProps) {
-  const shareUrl = useQrDestinationUrl(DEFAULT_WORKER_EDUCATION_PATH)
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error) return error.message
+  return 'SOP 생성에 실패했습니다.'
+}
+
+export function NewSOPModal({ open, onOpenChange, onCreated }: NewSOPModalProps) {
   const [step, setStep] = useState<Step>('upload')
   const [selectedLanguages, setSelectedLanguages] = useState<string[]>(['ko', 'vi'])
   const [file, setFile] = useState<File | null>(null)
+  const [createdSop, setCreatedSop] = useState<CreatedSop | null>(null)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+
+  const createdPath = createdSop ? `/education/${createdSop.public_token}` : ''
+  const shareUrl = useQrDestinationUrl(createdPath)
+  const selectedLanguageLabels = useMemo(
+    () =>
+      selectedLanguages
+        .map((id) => SUPPORTED_LANGUAGES.find((language) => language.code === id)?.label)
+        .filter(Boolean)
+        .join(', '),
+    [selectedLanguages],
+  )
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0]
-    if (selectedFile) {
-      setFile(selectedFile)
+    setErrorMessage(null)
+    setFile(selectedFile ?? null)
+  }
+
+  const handleUpload = async () => {
+    if (!file || selectedLanguages.length === 0) return
+
+    setStep('processing')
+    setErrorMessage(null)
+
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('languages', JSON.stringify(selectedLanguages))
+
+      const response = await fetch('/api/sops', {
+        method: 'POST',
+        credentials: 'same-origin',
+        body: formData,
+      })
+      const payload = (await response.json()) as { sop?: CreatedSop; error?: string }
+
+      if (!response.ok || !payload.sop) {
+        throw new Error(payload.error ?? 'SOP 생성에 실패했습니다.')
+      }
+
+      setCreatedSop(payload.sop)
+      setStep('complete')
+      onCreated?.()
+    } catch (error) {
+      setStep('upload')
+      setErrorMessage(getErrorMessage(error))
     }
   }
 
-  const handleUpload = () => {
-    if (!file) return
-    setStep('processing')
-    setTimeout(() => {
-      setStep('complete')
-    }, 2000)
-  }
-
   const handleClose = () => {
+    if (step === 'processing') return
     setStep('upload')
     setFile(null)
+    setCreatedSop(null)
+    setErrorMessage(null)
     onOpenChange(false)
   }
 
@@ -57,7 +101,7 @@ export function NewSOPModal({ open, onOpenChange }: NewSOPModalProps) {
       if (typeof navigator !== 'undefined' && navigator.share) {
         await navigator.share({
           title: 'WorkProof 안전 교육',
-          text: '아래 링크에서 교육을 진행해 주세요.',
+          text: '아래 링크에서 안전 교육을 진행해 주세요.',
           url: shareUrl,
         })
         return
@@ -78,13 +122,13 @@ export function NewSOPModal({ open, onOpenChange }: NewSOPModalProps) {
         <DialogHeader>
           <DialogTitle className="text-[#333d4b]">
             {step === 'upload' && 'SOP 문서 업로드'}
-            {step === 'processing' && 'AI 처리 중'}
-            {step === 'complete' && 'SOP 생성 완료'}
+            {step === 'processing' && 'AI 생성 중'}
+            {step === 'complete' && '교육 콘텐츠 생성 완료'}
           </DialogTitle>
           <DialogDescription className="text-[#6b7684]">
-            {step === 'upload' && 'PDF 또는 문서를 업로드해 작업자 교육 콘텐츠를 생성합니다.'}
-            {step === 'processing' && '문서를 분석하고 교육 카드와 퀴즈를 준비하고 있습니다.'}
-            {step === 'complete' && 'QR 링크로 작업자 교육을 배포할 수 있습니다.'}
+            {step === 'upload' && '문서를 업로드하면 Gemini가 교육 카드, 다국어 퀴즈, QR 링크를 생성합니다.'}
+            {step === 'processing' && '문서를 분석하고 작업 단계, 위험요소, 보호구, 금지행동을 정리하고 있습니다.'}
+            {step === 'complete' && '현장에 QR을 공유하면 근로자가 바로 교육을 시작할 수 있습니다.'}
           </DialogDescription>
         </DialogHeader>
 
@@ -95,15 +139,21 @@ export function NewSOPModal({ open, onOpenChange }: NewSOPModalProps) {
                 문서 파일
               </Label>
               <div className="rounded-lg border-2 border-dashed border-[#e5e8eb] p-8 text-center transition-colors hover:border-[#3182f6]">
-                <Input id="sop-file" type="file" accept=".pdf,.doc,.docx" onChange={handleFileChange} className="hidden" />
+                <Input
+                  id="sop-file"
+                  type="file"
+                  accept=".pdf,.doc,.docx,.txt,.md"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
                 <label htmlFor="sop-file" className="cursor-pointer">
                   <Upload className="mx-auto mb-3 h-10 w-10 text-[#8b95a1]" />
                   {file ? (
-                    <p className="font-medium text-[#3182f6]">{file.name}</p>
+                    <p className="break-all font-medium text-[#3182f6]">{file.name}</p>
                   ) : (
                     <>
                       <p className="mb-1 text-[#6b7684]">업로드할 SOP 문서를 선택하세요.</p>
-                      <p className="text-xs text-[#8b95a1]">PDF, DOC, DOCX 최대 10MB</p>
+                      <p className="text-xs text-[#8b95a1]">PDF, DOC, DOCX, TXT 최대 20MB</p>
                     </>
                   )}
                 </label>
@@ -113,21 +163,26 @@ export function NewSOPModal({ open, onOpenChange }: NewSOPModalProps) {
             <div className="space-y-3">
               <Label className="text-[#333d4b]">교육 언어</Label>
               <div className="flex flex-wrap gap-3">
-                {languages.map((lang) => (
-                  <label key={lang.id} className="flex cursor-pointer items-center gap-2">
-                    <Checkbox checked={selectedLanguages.includes(lang.id)} onCheckedChange={() => toggleLanguage(lang.id)} />
-                    <span className="text-sm text-[#333d4b]">{lang.label}</span>
+                {SUPPORTED_LANGUAGES.map((language) => (
+                  <label key={language.code} className="flex cursor-pointer items-center gap-2">
+                    <Checkbox
+                      checked={selectedLanguages.includes(language.code)}
+                      onCheckedChange={() => toggleLanguage(language.code)}
+                    />
+                    <span className="text-sm text-[#333d4b]">{language.label}</span>
                   </label>
                 ))}
               </div>
             </div>
+
+            {errorMessage && <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{errorMessage}</p>}
 
             <Button
               onClick={handleUpload}
               disabled={!file || selectedLanguages.length === 0}
               className="w-full bg-[#3182f6] text-white hover:bg-[#1b64da]"
             >
-              업로드하고 생성
+              업로드하고 AI 생성
             </Button>
           </div>
         )}
@@ -138,15 +193,15 @@ export function NewSOPModal({ open, onOpenChange }: NewSOPModalProps) {
             <p className="text-center text-[#6b7684]">
               SOP 문서를 분석하는 중입니다.
               <br />
-              잠시만 기다려 주세요.
+              파일 크기에 따라 잠시 걸릴 수 있습니다.
             </p>
           </div>
         )}
 
-        {step === 'complete' && (
+        {step === 'complete' && createdSop && (
           <div className="space-y-6 py-6">
             <div className="flex justify-center">
-              <QrCodeLink path={DEFAULT_WORKER_EDUCATION_PATH} size={176} />
+              <QrCodeLink path={createdPath} size={176} />
             </div>
 
             <div className="space-y-2 text-center">
@@ -154,9 +209,8 @@ export function NewSOPModal({ open, onOpenChange }: NewSOPModalProps) {
                 <Check className="h-5 w-5" />
                 <span className="font-medium">생성 완료</span>
               </div>
-              <p className="text-sm text-[#6b7684]">
-                선택한 언어: {selectedLanguages.map((id) => languages.find((lang) => lang.id === id)?.label).join(', ')}
-              </p>
+              <p className="text-sm font-medium text-[#333d4b]">{createdSop.title}</p>
+              <p className="text-sm text-[#6b7684]">선택 언어: {selectedLanguageLabels}</p>
             </div>
 
             <div className="flex gap-3">

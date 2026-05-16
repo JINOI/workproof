@@ -1,7 +1,10 @@
 import { notFound } from 'next/navigation'
+import { randomUUID } from 'node:crypto'
 
 import { createClient } from '@/lib/supabase/server'
 import type { QuizQuestionInsert, SopInsert, SubmitEducationPayload } from './types'
+
+type NewQuizQuestionInput = Omit<QuizQuestionInsert, 'sop_id'>
 
 export async function getCurrentUser() {
   const supabase = await createClient()
@@ -93,7 +96,7 @@ export async function getPublicEducationByToken(publicToken: string) {
   return data
 }
 
-export async function createSop(input: Omit<SopInsert, 'owner_id'> & { questions?: QuizQuestionInsert[] }) {
+export async function createSop(input: Omit<SopInsert, 'owner_id'> & { questions?: NewQuizQuestionInput[] }) {
   const supabase = await createClient()
   const user = await getCurrentUser()
 
@@ -128,10 +131,36 @@ export async function createSop(input: Omit<SopInsert, 'owner_id'> & { questions
   return sop
 }
 
+function sanitizeFileName(fileName: string) {
+  return fileName.replace(/[^\w.-]+/g, '-').replace(/^-+|-+$/g, '') || 'sop-document'
+}
+
+export async function uploadSopSourceFile(input: { fileName: string; mimeType: string; buffer: Buffer }) {
+  const supabase = await createClient()
+  const user = await getCurrentUser()
+
+  if (!user) {
+    throw new Error('Authentication required')
+  }
+
+  const storagePath = `${user.id}/${randomUUID()}-${sanitizeFileName(input.fileName)}`
+  const { error } = await supabase.storage.from('sop-files').upload(storagePath, input.buffer, {
+    contentType: input.mimeType,
+    upsert: false,
+  })
+
+  if (error) {
+    throw error
+  }
+
+  return storagePath
+}
+
 export async function submitEducationResult(input: SubmitEducationPayload) {
   const supabase = await createClient()
   const wrongQuestionIds = input.answers.filter((answer) => !answer.isCorrect).map((answer) => answer.questionId)
-  const status = wrongQuestionIds.length === 0 ? 'safe' : input.attempts <= 3 ? 'warning' : 'failed'
+  const passed = input.passed ?? wrongQuestionIds.length === 0
+  const status = !passed ? 'failed' : input.attempts <= 3 && wrongQuestionIds.length === 0 ? 'safe' : 'warning'
 
   const { data, error } = await supabase
     .from('education_logs')

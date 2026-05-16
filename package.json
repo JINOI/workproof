@@ -3,9 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --hostname 0.0.0.0",
+    "dev": "node scripts/dev-server.mjs",
+    "dev:turbo": "node scripts/dev-server.mjs --turbo",
+    "dev:stop": "node scripts/stop-dev.mjs",
+    "pull:safe": "node scripts/safe-pull.mjs",
     "build": "next build",
-    "test": "node --test --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON lib/auth/validation.test.ts",
+    "test": "node --test --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON lib/auth/validation.test.ts lib/workproof/ai.test.ts",
     "start": "next start",
     "lint": "eslint ."
   },

@@ -1,0 +1,2 @@
+#!/bin/sh
+node scripts/stop-dev.mjs --quiet >/dev/null 2>&1 || true

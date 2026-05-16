@@ -11,10 +11,12 @@ import { Label } from '@/components/ui/label'
 import { Progress } from '@/components/ui/progress'
 import type { Json } from '@/lib/supabase/database.types'
 import { cn } from '@/lib/utils'
+import { SUPPORTED_LANGUAGES } from '@/lib/workproof/languages'
 
 type Step = 'info' | 'education' | 'quiz' | 'result' | 'failed'
 
 type EducationCardPayload = {
+  language?: string
   title: string
   content: string
   icon: 'warning' | 'safety' | 'prohibited' | 'equipment'
@@ -22,11 +24,21 @@ type EducationCardPayload = {
 
 type QuizQuestionPayload = {
   id: string
+  language?: string
   position: number
   type: 'ox' | 'multiple'
   prompt: string
   options: Json | null
   correct_answer: Json
+  explanation: string | null
+}
+
+type PreparedQuestion = {
+  id: string
+  type: 'ox' | 'multiple'
+  prompt: string
+  options: string[]
+  correctAnswer: Json
   explanation: string | null
 }
 
@@ -43,21 +55,25 @@ type AnswerState = {
   questionId: string
   selectedAnswer: Json
   isCorrect: boolean
+  attempt: number
 }
 
 function isEducationCard(value: Json): value is EducationCardPayload {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false
 
   return (
+    (typeof value.language === 'undefined' || typeof value.language === 'string') &&
     typeof value.title === 'string' &&
     typeof value.content === 'string' &&
     (value.icon === 'warning' || value.icon === 'safety' || value.icon === 'prohibited' || value.icon === 'equipment')
   )
 }
 
-function parseEducationCards(value: Json): EducationCardPayload[] {
+function parseEducationCards(value: Json, language: string): EducationCardPayload[] {
   if (!Array.isArray(value)) return []
-  return value.filter(isEducationCard)
+  const cards = value.filter(isEducationCard)
+  const localizedCards = cards.filter((card) => card.language === language)
+  return localizedCards.length > 0 ? localizedCards : cards.filter((card) => !card.language || card.language === 'ko')
 }
 
 function parseOptions(value: Json | null): string[] {
@@ -72,6 +88,43 @@ function shuffleArray<T>(array: T[]): T[] {
     ;[shuffled[index], shuffled[nextIndex]] = [shuffled[nextIndex], shuffled[index]]
   }
   return shuffled
+}
+
+function getCorrectAnswer(question: QuizQuestionPayload, options: string[]): Json {
+  if (question.type === 'ox') {
+    return Boolean(question.correct_answer)
+  }
+
+  if (typeof question.correct_answer === 'number') {
+    return options[question.correct_answer] ?? String(question.correct_answer)
+  }
+
+  return typeof question.correct_answer === 'string' ? question.correct_answer : String(question.correct_answer)
+}
+
+function prepareQuestions(questions: QuizQuestionPayload[], language: string): PreparedQuestion[] {
+  const localized = questions.filter((question) => question.language === language)
+  const candidates = localized.length > 0 ? localized : questions.filter((question) => !question.language || question.language === 'ko')
+
+  return shuffleArray([...candidates].sort((a, b) => a.position - b.position))
+    .map((question) => {
+      const baseOptions = parseOptions(question.options)
+      const correctAnswer = getCorrectAnswer(question, baseOptions)
+      const options = question.type === 'multiple' ? shuffleArray(baseOptions) : []
+
+      return {
+        id: question.id,
+        type: question.type,
+        prompt: question.prompt,
+        options,
+        correctAnswer,
+        explanation: question.explanation,
+      }
+    })
+}
+
+function answersMatch(selectedAnswer: Json | null, correctAnswer: Json) {
+  return selectedAnswer === correctAnswer
 }
 
 function getCardIcon(iconType: EducationCardPayload['icon']) {
@@ -95,6 +148,10 @@ function formatTime(seconds: number) {
   return `${minutes}분 ${restSeconds}초`
 }
 
+function languageLabel(code: string) {
+  return SUPPORTED_LANGUAGES.find((language) => language.code === code)?.label ?? code
+}
+
 export default function EducationPage() {
   const params = useParams<{ sopId: string }>()
   const [education, setEducation] = useState<EducationPayload | null>(null)
@@ -102,19 +159,21 @@ export default function EducationPage() {
   const [loadError, setLoadError] = useState<string | null>(null)
   const [name, setName] = useState('')
   const [birthDate, setBirthDate] = useState('')
+  const [selectedLanguage, setSelectedLanguage] = useState('ko')
   const [step, setStep] = useState<Step>('info')
   const [currentCardIndex, setCurrentCardIndex] = useState(0)
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
   const [canProceed, setCanProceed] = useState(false)
   const [countdown, setCountdown] = useState(5)
   const [answers, setAnswers] = useState<AnswerState[]>([])
+  const [wrongHistory, setWrongHistory] = useState<AnswerState[]>([])
   const [attempts, setAttempts] = useState(1)
   const [startTime, setStartTime] = useState(0)
   const [elapsedTime, setElapsedTime] = useState(0)
   const [selectedAnswer, setSelectedAnswer] = useState<Json | null>(null)
+  const [lastAnswer, setLastAnswer] = useState<AnswerState | null>(null)
   const [showFeedback, setShowFeedback] = useState(false)
-  const [lives, setLives] = useState(3)
-  const [shuffledQuestions, setShuffledQuestions] = useState<QuizQuestionPayload[]>([])
+  const [shuffledQuestions, setShuffledQuestions] = useState<PreparedQuestion[]>([])
   const [submitError, setSubmitError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -134,6 +193,7 @@ export default function EducationPage() {
 
         if (isMounted) {
           setEducation(payload.education)
+          setSelectedLanguage(payload.education.languages[0] ?? 'ko')
           setLoadError(null)
         }
       } catch (error) {
@@ -154,17 +214,25 @@ export default function EducationPage() {
     }
   }, [params.sopId])
 
-  const educationCards = useMemo(() => parseEducationCards(education?.education_cards ?? []), [education])
+  const educationCards = useMemo(
+    () => parseEducationCards(education?.education_cards ?? [], selectedLanguage),
+    [education, selectedLanguage],
+  )
+
+  const availableLanguages = useMemo(() => {
+    const languages = education?.languages ?? ['ko']
+    return languages.length > 0 ? languages : ['ko']
+  }, [education])
 
   const initQuiz = useCallback(() => {
-    setShuffledQuestions(shuffleArray(education?.quiz_questions ?? []))
+    setShuffledQuestions(prepareQuestions(education?.quiz_questions ?? [], selectedLanguage))
     setCurrentQuestionIndex(0)
     setAnswers([])
     setSelectedAnswer(null)
+    setLastAnswer(null)
     setShowFeedback(false)
-    setStartTime(Date.now())
     setSubmitError(null)
-  }, [education])
+  }, [education, selectedLanguage])
 
   useEffect(() => {
     if (step !== 'education') return
@@ -186,7 +254,7 @@ export default function EducationPage() {
   }, [step, currentCardIndex])
 
   useEffect(() => {
-    if (step !== 'quiz' || startTime <= 0) return
+    if ((step !== 'quiz' && step !== 'result' && step !== 'failed') || startTime <= 0) return
 
     const interval = setInterval(() => {
       setElapsedTime(Math.floor((Date.now() - startTime) / 1000))
@@ -197,6 +265,12 @@ export default function EducationPage() {
 
   const handleStartEducation = () => {
     if (!name || !birthDate || !education) return
+
+    setAttempts(1)
+    setWrongHistory([])
+    setCurrentCardIndex(0)
+    setStartTime(Date.now())
+    setElapsedTime(0)
 
     if (educationCards.length === 0) {
       initQuiz()
@@ -223,31 +297,32 @@ export default function EducationPage() {
   }
 
   const handleSubmitAnswer = () => {
-    if (selectedAnswer === null) return
+    if (selectedAnswer === null || !shuffledQuestions[currentQuestionIndex]) return
 
     const currentQuestion = shuffledQuestions[currentQuestionIndex]
-    const isCorrect = selectedAnswer === currentQuestion.correct_answer
+    const isCorrect = answersMatch(selectedAnswer, currentQuestion.correctAnswer)
+    const answerState = {
+      questionId: currentQuestion.id,
+      selectedAnswer,
+      isCorrect,
+      attempt: attempts,
+    }
 
+    setLastAnswer(answerState)
     setShowFeedback(true)
-    setAnswers((prev) => [
-      ...prev,
-      {
-        questionId: currentQuestion.id,
-        selectedAnswer,
-        isCorrect,
-      },
-    ])
+    setAnswers((prev) => [...prev, answerState])
 
     if (!isCorrect) {
-      setLives((prev) => prev - 1)
+      setWrongHistory((prev) => [...prev, answerState])
     }
   }
 
-  const submitResult = async (nextAnswers: AnswerState[]) => {
+  const submitResult = async () => {
     if (!education) return
 
     try {
       const finalElapsedTime = Math.floor((Date.now() - startTime) / 1000)
+      const finalAnswers = [...wrongHistory, ...answers]
       setElapsedTime(finalElapsedTime)
 
       const response = await fetch('/api/education/submit', {
@@ -259,35 +334,28 @@ export default function EducationPage() {
           sopId: education.id,
           workerName: name,
           workerBirthDate: birthDate,
-          language: education.languages[0] ?? 'ko',
+          language: selectedLanguage,
           attempts,
           elapsedSeconds: finalElapsedTime,
-          answers: nextAnswers,
+          passed: true,
+          answers: finalAnswers,
         }),
       })
 
       if (!response.ok) {
         throw new Error('이수 결과를 저장하지 못했습니다.')
       }
+
+      setStep('result')
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : '이수 결과를 저장하지 못했습니다.')
     }
   }
 
-  const handleNextQuestion = async () => {
-    const currentQuestion = shuffledQuestions[currentQuestionIndex]
-    const isCorrect = selectedAnswer === currentQuestion.correct_answer
-    const nextAnswers = [
-      ...answers,
-      {
-        questionId: currentQuestion.id,
-        selectedAnswer: selectedAnswer as Json,
-        isCorrect,
-      },
-    ]
+  const handleContinue = async () => {
+    if (!lastAnswer) return
 
-    if (!isCorrect && lives <= 1) {
-      await submitResult(nextAnswers)
+    if (!lastAnswer.isCorrect) {
       setStep('failed')
       return
     }
@@ -295,18 +363,16 @@ export default function EducationPage() {
     if (currentQuestionIndex < shuffledQuestions.length - 1) {
       setCurrentQuestionIndex((prev) => prev + 1)
       setSelectedAnswer(null)
+      setLastAnswer(null)
       setShowFeedback(false)
       return
     }
 
-    const wrongAnswers = nextAnswers.filter((answer) => !answer.isCorrect).length
-    await submitResult(nextAnswers)
-    setStep(wrongAnswers > 0 ? 'failed' : 'result')
+    await submitResult()
   }
 
   const handleRetry = () => {
     setAttempts((prev) => prev + 1)
-    setLives(3)
     initQuiz()
     setStep('quiz')
   }
@@ -348,8 +414,8 @@ export default function EducationPage() {
             </div>
             {step === 'quiz' && (
               <div className="flex items-center gap-1">
-                <Heart className={cn('h-5 w-5', lives >= 1 ? 'fill-[#f04452] text-[#f04452]' : 'text-[#d1d6db]')} />
-                <span className="text-sm text-[#333d4b]">{lives}</span>
+                <Heart className="h-5 w-5 fill-[#f04452] text-[#f04452]" />
+                <span className="text-sm text-[#333d4b]">{attempts}회차</span>
               </div>
             )}
             {step === 'education' && <span className="text-sm text-[#6b7684]">{currentCardIndex + 1}/{educationCards.length}</span>}
@@ -388,6 +454,26 @@ export default function EducationPage() {
                       onChange={(event) => setBirthDate(event.target.value)}
                       className="h-12 border-[#e5e8eb]"
                     />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-[#333d4b]">교육 언어</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {availableLanguages.map((language) => (
+                        <button
+                          key={language}
+                          type="button"
+                          onClick={() => setSelectedLanguage(language)}
+                          className={cn(
+                            'rounded-lg border px-3 py-2 text-sm font-medium transition-colors',
+                            selectedLanguage === language
+                              ? 'border-[#3182f6] bg-[#e8f3ff] text-[#3182f6]'
+                              : 'border-[#e5e8eb] bg-white text-[#333d4b]',
+                          )}
+                        >
+                          {languageLabel(language)}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                   <Button onClick={handleStartEducation} disabled={!name || !birthDate} className="mt-4 h-12 w-full bg-[#3182f6] text-white hover:bg-[#1b64da]">
                     교육 시작
@@ -429,6 +515,15 @@ export default function EducationPage() {
             </div>
           )}
 
+          {step === 'quiz' && !currentQuestion && (
+            <Card className="border-0 text-center shadow-lg">
+              <CardContent className="p-8">
+                <h2 className="mb-2 text-xl font-bold text-[#333d4b]">퀴즈가 없습니다.</h2>
+                <p className="text-sm text-[#6b7684]">관리자에게 교육 링크를 다시 확인해 달라고 요청하세요.</p>
+              </CardContent>
+            </Card>
+          )}
+
           {step === 'quiz' && currentQuestion && (
             <div className="space-y-6">
               <div className="mb-2 text-center">
@@ -438,9 +533,9 @@ export default function EducationPage() {
 
               {currentQuestion.type === 'ox' ? (
                 <div className="grid grid-cols-2 gap-4">
-                  {[false, true].map((answer) => {
+                  {[true, false].map((answer) => {
                     const isSelected = selectedAnswer === answer
-                    const isCorrect = currentQuestion.correct_answer === answer
+                    const isCorrect = currentQuestion.correctAnswer === answer
 
                     return (
                       <button
@@ -465,15 +560,15 @@ export default function EducationPage() {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {parseOptions(currentQuestion.options).map((option, index) => {
-                    const isSelected = selectedAnswer === index
-                    const isCorrect = currentQuestion.correct_answer === index
+                  {currentQuestion.options.map((option, index) => {
+                    const isSelected = selectedAnswer === option
+                    const isCorrect = currentQuestion.correctAnswer === option
 
                     return (
                       <button
-                        key={option}
+                        key={`${option}-${index}`}
                         type="button"
-                        onClick={() => handleSelectAnswer(index)}
+                        onClick={() => handleSelectAnswer(option)}
                         disabled={showFeedback}
                         className={cn(
                           'w-full rounded-xl border-2 p-4 text-left transition-all',
@@ -484,10 +579,10 @@ export default function EducationPage() {
                           !showFeedback && !isSelected && 'border-[#e5e8eb] text-[#333d4b] hover:border-[#3182f6]',
                         )}
                       >
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-center justify-between gap-3">
                           <span>{option}</span>
-                          {showFeedback && isCorrect && <Check className="h-5 w-5" />}
-                          {showFeedback && isSelected && !isCorrect && <X className="h-5 w-5" />}
+                          {showFeedback && isCorrect && <Check className="h-5 w-5 shrink-0" />}
+                          {showFeedback && isSelected && !isCorrect && <X className="h-5 w-5 shrink-0" />}
                         </div>
                       </button>
                     )
@@ -496,8 +591,8 @@ export default function EducationPage() {
               )}
 
               {showFeedback && (
-                <div className={cn('flex items-center gap-3 rounded-xl p-4', selectedAnswer === currentQuestion.correct_answer ? 'bg-[#e6f9f1]' : 'bg-[#fff0f0]')}>
-                  {selectedAnswer === currentQuestion.correct_answer ? (
+                <div className={cn('flex items-center gap-3 rounded-xl p-4', lastAnswer?.isCorrect ? 'bg-[#e6f9f1]' : 'bg-[#fff0f0]')}>
+                  {lastAnswer?.isCorrect ? (
                     <>
                       <Check className="h-5 w-5 text-[#00d082]" />
                       <span className="font-medium text-[#00d082]">정답입니다.</span>
@@ -518,8 +613,8 @@ export default function EducationPage() {
                   제출
                 </Button>
               ) : (
-                <Button onClick={handleNextQuestion} className="h-12 w-full bg-[#3182f6] text-white hover:bg-[#1b64da]">
-                  계속
+                <Button onClick={handleContinue} className="h-12 w-full bg-[#3182f6] text-white hover:bg-[#1b64da]">
+                  {lastAnswer?.isCorrect ? '계속' : '전체 퀴즈 다시 풀기'}
                 </Button>
               )}
             </div>
@@ -531,8 +626,8 @@ export default function EducationPage() {
                 <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-[#fff0f0]">
                   <X className="h-10 w-10 text-[#f04452]" />
                 </div>
-                <h2 className="mb-2 text-xl font-bold text-[#333d4b]">교육을 통과하지 못했습니다.</h2>
-                <p className="mb-6 text-[#6b7684]">틀린 문항을 다시 확인한 뒤 재시도하세요.</p>
+                <h2 className="mb-2 text-xl font-bold text-[#333d4b]">처음부터 다시 풀어야 합니다.</h2>
+                <p className="mb-6 text-[#6b7684]">한 문제라도 틀리면 전체 세트를 다시 풀어야 합니다. 문제와 보기 순서는 다시 섞입니다.</p>
                 <Button onClick={handleRetry} className="h-12 w-full bg-[#f04452] text-white hover:bg-[#d63841]">
                   다시 시도
                 </Button>
@@ -546,8 +641,8 @@ export default function EducationPage() {
                 <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-[#e6f9f1]">
                   <Check className="h-10 w-10 text-[#00d082]" />
                 </div>
-                <h2 className="mb-2 text-xl font-bold text-[#333d4b]">교육을 완료했습니다.</h2>
-                <p className="mb-6 text-[#6b7684]">이수 결과가 저장되었습니다.</p>
+                <h2 className="mb-2 text-xl font-bold text-[#333d4b]">수고하셨습니다!</h2>
+                <p className="mb-6 text-[#6b7684]">교육 이수 결과가 저장되었습니다.</p>
 
                 <div className="mb-6 space-y-3 rounded-xl bg-[#f2f4f6] p-4">
                   <div className="flex items-center justify-between">
@@ -560,7 +655,9 @@ export default function EducationPage() {
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-[#6b7684]">상태</span>
-                    <span className={cn('font-medium', attempts <= 3 ? 'text-[#00d082]' : 'text-[#b88600]')}>{attempts <= 3 ? '안전' : '주의'}</span>
+                    <span className={cn('font-medium', attempts <= 3 && wrongHistory.length === 0 ? 'text-[#00d082]' : 'text-[#b88600]')}>
+                      {attempts <= 3 && wrongHistory.length === 0 ? '안전' : '주의'}
+                    </span>
                   </div>
                 </div>
               </CardContent>
