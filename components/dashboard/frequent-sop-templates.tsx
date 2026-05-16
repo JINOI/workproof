@@ -40,7 +40,7 @@ export function FrequentSopTemplates({
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <div className="mb-2 flex items-center gap-2">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#3182f6] text-white">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#e8f3ff] text-[#3182f6]">
               <Sparkles className="h-4 w-4" />
             </span>
             <h2 className="text-lg font-semibold text-[#1f2d3d]">자주 찾는 SOP</h2>
@@ -83,7 +83,7 @@ export function FrequentSopTemplates({
 
                   <Button
                     type="button"
-                    className="mt-auto w-full bg-[#3182f6] text-white hover:bg-[#1b64da] disabled:bg-[#d1d6db]"
+                    className="mt-auto w-full border border-[#cfe5ff] bg-[#e8f3ff] text-[#3182f6] hover:bg-[#d9ecff] disabled:border-transparent disabled:bg-[#d1d6db] disabled:text-white"
                     disabled={isAdded || isAdding || !onAddTemplate}
                     onClick={() => onAddTemplate?.(template.template_key)}
                   >
