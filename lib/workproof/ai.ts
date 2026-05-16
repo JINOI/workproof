@@ -5,6 +5,14 @@ import { SUPPORTED_LANGUAGE_CODES, SUPPORTED_LANGUAGES, type SupportedLanguageCo
 
 const educationCardSchema = z.object({
   language: z.string(),
+  position: z.number().int().positive(),
+  title: z.string().min(1),
+  content: z.string().min(1),
+  icon: z.enum(['warning', 'safety', 'prohibited', 'equipment']),
+})
+
+const summaryCardSchema = z.object({
+  position: z.number().int().positive(),
   title: z.string().min(1),
   content: z.string().min(1),
   icon: z.enum(['warning', 'safety', 'prohibited', 'equipment']),
@@ -24,6 +32,9 @@ const generatedSopSchema = z.object({
   title: z.string().min(1),
   description: z.string().min(1),
   summary: z.object({
+    sourceLanguage: z.string().min(1),
+    documentSummary: z.string().min(1),
+    cards: z.array(summaryCardSchema).min(1),
     workSteps: z.array(z.string()).min(1),
     hazards: z.array(z.string()).min(1),
     protectiveEquipment: z.array(z.string()).min(1),
@@ -70,9 +81,16 @@ function buildPrompt(languages: SupportedLanguageCode[]) {
 
   return [
     'You are WorkProof, a safety education generator for manufacturing and construction sites.',
-    'Read the attached SOP document and generate training content for foreign workers.',
+    'Read the attached SOP document and generate training content for workers.',
     '',
     `Target languages: ${targetLanguages}.`,
+    '',
+    'Generation pipeline:',
+    '1. Read the attached SOP/PDF first.',
+    '2. Create a canonical Korean education summary from the document.',
+    '3. Convert that canonical summary into worker-facing education cards. Use at most 10 cards total.',
+    '4. Translate those exact cards into each target language. Do not add cards during translation.',
+    '5. Create quizzes from the translated education cards only, so the worker can answer after studying the cards.',
     '',
     'Return only valid JSON. Do not wrap it in Markdown.',
     'Schema:',
@@ -80,13 +98,18 @@ function buildPrompt(languages: SupportedLanguageCode[]) {
     '  "title": "short SOP title in Korean",',
     '  "description": "one sentence Korean description",',
     '  "summary": {',
+    '    "sourceLanguage": "ko",',
+    '    "documentSummary": "short Korean summary of the original document",',
+    '    "cards": [',
+    '      { "position": 1, "title": "Korean card title", "content": "Korean card content", "icon": "warning|safety|prohibited|equipment" }',
+    '    ],',
     '    "workSteps": ["..."],',
     '    "hazards": ["..."],',
     '    "protectiveEquipment": ["..."],',
     '    "prohibitedActions": ["..."]',
     '  },',
     '  "educationCards": [',
-    '    { "language": "ko", "title": "...", "content": "...", "icon": "warning|safety|prohibited|equipment" }',
+    '    { "language": "ko", "position": 1, "title": "translated card title", "content": "translated card content", "icon": "warning|safety|prohibited|equipment" }',
     '  ],',
     '  "quizQuestions": [',
     '    {',
@@ -111,12 +134,16 @@ function buildPrompt(languages: SupportedLanguageCode[]) {
     '}',
     '',
     'Rules:',
-    '- Create exactly 4 education cards per language: work steps, hazards, protective equipment, prohibited actions.',
+    '- summary.cards is the server-stored education summary material. It must be derived from the uploaded document before translation or quiz generation.',
+    '- summary.cards must contain 1 to 10 cards. Never create more than 10 cards, even for long documents.',
+    '- educationCards must be translations of summary.cards for each target language. Keep the same positions and icons as summary.cards.',
+    '- Prefer 4 to 8 cards when the document is ordinary length; use up to 10 only when the SOP has enough distinct safety topics.',
     '- Create exactly 10 quiz questions per language.',
     '- Mix O/X and multiple-choice questions.',
     '- Multiple-choice correctAnswer must be the exact option text, not an index.',
     '- Keep worker-facing text short, concrete, and easy to understand.',
-    '- Do not invent hazards that conflict with the document. If the document is sparse, create conservative general safety questions from the available content.',
+    '- Quiz questions must be answerable from educationCards. Do not test details that are absent from the cards.',
+    '- Do not invent hazards that conflict with the document. If the document is sparse, create conservative general safety cards from the available content.',
   ].join('\n')
 }
 
@@ -140,10 +167,27 @@ function getResponseText(payload: GeminiResponse) {
 
 function normalizeGeneratedSop(value: GeneratedSop, languages: SupportedLanguageCode[]): GeneratedSop {
   const allowedLanguages = new Set(languages)
+  const cards = [...value.summary.cards]
+    .sort((left, right) => left.position - right.position)
+    .slice(0, 10)
+    .map((card, index) => ({
+      ...card,
+      position: index + 1,
+    }))
 
-  const educationCards = value.educationCards.filter((card) => allowedLanguages.has(card.language as SupportedLanguageCode))
+  const educationCards = languages.flatMap((language) =>
+    value.educationCards
+      .filter((card) => card.language === language)
+      .sort((left, right) => left.position - right.position)
+      .slice(0, cards.length)
+      .map((card, index) => ({
+        ...card,
+        position: index + 1,
+      })),
+  )
   const quizQuestions = value.quizQuestions
     .filter((question) => allowedLanguages.has(question.language as SupportedLanguageCode))
+    .sort((left, right) => left.position - right.position)
     .map((question) => {
       if (question.type === 'ox') {
         return {
@@ -167,8 +211,20 @@ function normalizeGeneratedSop(value: GeneratedSop, languages: SupportedLanguage
 
   return {
     ...value,
+    summary: {
+      ...value.summary,
+      cards,
+    },
     educationCards,
-    quizQuestions,
+    quizQuestions: languages.flatMap((language) =>
+      quizQuestions
+        .filter((question) => question.language === language)
+        .slice(0, 10)
+        .map((question, index) => ({
+          ...question,
+          position: index + 1,
+        })),
+    ),
   }
 }
 

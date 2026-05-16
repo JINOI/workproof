@@ -9,6 +9,8 @@ export type EducationLog = Database['public']['Tables']['education_logs']['Row']
 export type EducationLogInsert = Database['public']['Tables']['education_logs']['Insert']
 
 export type EducationCardPayload = {
+  language?: string
+  position?: number
   title: string
   content: string
   icon: 'warning' | 'safety' | 'prohibited' | 'equipment'
