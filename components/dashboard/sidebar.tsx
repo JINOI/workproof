@@ -12,8 +12,8 @@ import {
 } from '@/components/ui/dropdown-menu'
 
 const sidebarItems = [
-  { icon: LayoutDashboard, label: '대시보드', href: '/dashboard' },
-  { icon: FileText, label: 'SOP 관리', href: '/dashboard' },
+  { icon: LayoutDashboard, label: '대시보드', href: '/dashboard', activePath: '/dashboard' },
+  { icon: FileText, label: 'SOP 관리', href: '/dashboard', activePrefix: '/sop' },
   { icon: Users, label: '근로자', href: '/dashboard' },
 ]
 
@@ -32,7 +32,7 @@ export function Sidebar() {
       <nav className="flex-1 px-4">
         <ul className="space-y-1">
           {sidebarItems.map((item) => {
-            const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href))
+            const isActive = item.activePath === pathname || Boolean(item.activePrefix && pathname.startsWith(item.activePrefix))
             return (
               <li key={item.label}>
                 <Link
