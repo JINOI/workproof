@@ -218,7 +218,7 @@ export function NewSOPModal({ open, onOpenChange, onCreated }: NewSOPModalProps)
               </div>
               <p className="text-sm font-medium text-[#333d4b]">{createdSop.title}</p>
               <p className="text-sm text-[#6b7684]">선택 언어: {selectedLanguageLabels}</p>
-              <p className="text-xs text-[#8b95a1]">이제 회사 공용 QR에서 이 교육자료를 선택할 수 있습니다.</p>
+              <p className="text-xs text-[#8b95a1]">이제 회사 공통 QR에서 이 교육자료를 선택할 수 있습니다.</p>
             </div>
 
             <Button variant="outline" className="w-full border-[#e5e8eb]" onClick={handleClose}>

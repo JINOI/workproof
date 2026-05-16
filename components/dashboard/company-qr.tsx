@@ -143,7 +143,7 @@ export function CompanyQrPanel() {
               <QrCode className="h-5 w-5 text-[#3182f6]" />
             </div>
             <div>
-              <h2 className="font-semibold text-[#333d4b]">회사 공용 QR</h2>
+              <h2 className="font-semibold text-[#333d4b]">회사 공통 QR</h2>
               <p className="text-sm text-[#6b7684]">근로자는 이 QR에서 교육자료를 선택한 뒤 교육을 진행합니다.</p>
             </div>
           </div>
@@ -169,7 +169,7 @@ export function CompanyQrDialogButton({ disabled = false }: { disabled?: boolean
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>회사 공용 QR</DialogTitle>
+            <DialogTitle>회사 공통 QR</DialogTitle>
             <DialogDescription>근로자는 이 QR에서 교육자료를 선택해서 교육을 시작합니다.</DialogDescription>
           </DialogHeader>
           <CompanyQrContent companyQr={companyQr} isLoading={isLoading} errorMessage={errorMessage} />
