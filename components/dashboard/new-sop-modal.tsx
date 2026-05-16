@@ -1,9 +1,9 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { Check, Loader2, Share2, Upload } from 'lucide-react'
+import { Check, Loader2, Upload } from 'lucide-react'
 
-import { QrCodeLink, useQrDestinationUrl } from '@/components/qr-code-link'
+import { CompanyQrContent, useCompanyQr } from '@/components/dashboard/company-qr'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -37,9 +37,8 @@ export function NewSOPModal({ open, onOpenChange, onCreated }: NewSOPModalProps)
   const [file, setFile] = useState<File | null>(null)
   const [createdSop, setCreatedSop] = useState<CreatedSop | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const { companyQr, isLoading: isLoadingCompanyQr, errorMessage: companyQrErrorMessage } = useCompanyQr()
 
-  const createdPath = createdSop ? `/education/${createdSop.public_token}` : ''
-  const shareUrl = useQrDestinationUrl(createdPath)
   const selectedLanguageLabels = useMemo(
     () =>
       selectedLanguages
@@ -93,23 +92,6 @@ export function NewSOPModal({ open, onOpenChange, onCreated }: NewSOPModalProps)
     setCreatedSop(null)
     setErrorMessage(null)
     onOpenChange(false)
-  }
-
-  const handleShareQr = async () => {
-    if (!shareUrl) return
-    try {
-      if (typeof navigator !== 'undefined' && navigator.share) {
-        await navigator.share({
-          title: 'WorkProof 안전 교육',
-          text: '아래 링크에서 안전 교육을 진행해 주세요.',
-          url: shareUrl,
-        })
-        return
-      }
-      await navigator.clipboard.writeText(shareUrl)
-    } catch {
-      // Share and clipboard can be cancelled or blocked by the browser.
-    }
   }
 
   const toggleLanguage = (langId: string) => {
@@ -200,9 +182,7 @@ export function NewSOPModal({ open, onOpenChange, onCreated }: NewSOPModalProps)
 
         {step === 'complete' && createdSop && (
           <div className="space-y-6 py-6">
-            <div className="flex justify-center">
-              <QrCodeLink path={createdPath} size={176} />
-            </div>
+            <CompanyQrContent companyQr={companyQr} isLoading={isLoadingCompanyQr} errorMessage={companyQrErrorMessage} />
 
             <div className="space-y-2 text-center">
               <div className="flex items-center justify-center gap-2 text-[#00d082]">
@@ -211,22 +191,12 @@ export function NewSOPModal({ open, onOpenChange, onCreated }: NewSOPModalProps)
               </div>
               <p className="text-sm font-medium text-[#333d4b]">{createdSop.title}</p>
               <p className="text-sm text-[#6b7684]">선택 언어: {selectedLanguageLabels}</p>
+              <p className="text-xs text-[#8b95a1]">이제 회사 공용 QR에서 이 교육자료를 선택할 수 있습니다.</p>
             </div>
 
-            <div className="flex gap-3">
-              <Button variant="outline" className="flex-1 border-[#e5e8eb]" onClick={handleClose}>
-                닫기
-              </Button>
-              <Button
-                type="button"
-                className="flex-1 bg-[#3182f6] text-white hover:bg-[#1b64da]"
-                onClick={handleShareQr}
-                disabled={!shareUrl}
-              >
-                <Share2 className="mr-2 h-4 w-4" />
-                QR 공유
-              </Button>
-            </div>
+            <Button variant="outline" className="w-full border-[#e5e8eb]" onClick={handleClose}>
+              닫기
+            </Button>
           </div>
         )}
       </DialogContent>

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 import { DashboardHeader } from '@/components/dashboard/header'
+import { CompanyQrPanel } from '@/components/dashboard/company-qr'
 import { NewSOPModal } from '@/components/dashboard/new-sop-modal'
 import { Sidebar } from '@/components/dashboard/sidebar'
 import { type DashboardSop, SOPList } from '@/components/dashboard/sop-list'
@@ -139,6 +140,8 @@ export default function SOPManagementPage() {
           </div>
 
           {loadError && <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{loadError}</p>}
+
+          <CompanyQrPanel />
 
           <SOPList
             sops={filteredSOPs}

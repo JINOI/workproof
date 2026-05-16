@@ -75,7 +75,7 @@ type QrCodeLinkProps = {
 export function QrCodeLink({ path, size = 176, className }: QrCodeLinkProps) {
   const { base, needsPhoneSetup, ready } = useQrBaseUrl()
   const value = useMemo(() => {
-    if (!base) return ''
+    if (!base || !path) return ''
     const p = path.startsWith('/') ? path : `/${path}`
     return `${base}${p}`
   }, [base, path])
@@ -125,7 +125,7 @@ export function QrCodeLink({ path, size = 176, className }: QrCodeLinkProps) {
 export function useQrDestinationUrl(path: string): string {
   const { base, ready } = useQrBaseUrl()
   return useMemo(() => {
-    if (!ready || !base) return ''
+    if (!ready || !base || !path) return ''
     const p = path.startsWith('/') ? path : `/${path}`
     return `${base}${p}`
   }, [ready, base, path])

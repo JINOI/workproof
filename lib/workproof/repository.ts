@@ -5,6 +5,11 @@ import { createClient } from '@/lib/supabase/server'
 import type { QuizQuestionInsert, SopInsert, SubmitEducationPayload } from './types'
 
 type NewQuizQuestionInput = Omit<QuizQuestionInsert, 'sop_id'>
+type CompanyProfile = {
+  id: string
+  organization_name: string | null
+  company_public_token: string
+}
 
 export async function getCurrentUser() {
   const supabase = await createClient()
@@ -46,6 +51,37 @@ export async function listSops() {
       completionRate: totalWorkers === 0 ? 0 : Math.round((completedWorkers / totalWorkers) * 100),
     }
   })
+}
+
+async function getCompanyProfileForUser(supabase: Awaited<ReturnType<typeof createClient>>, userId: string): Promise<CompanyProfile> {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id, organization_name, company_public_token')
+    .eq('id', userId)
+    .single()
+
+  if (error) {
+    throw error
+  }
+
+  return data
+}
+
+export async function getCompanyQrForManager() {
+  const supabase = await createClient()
+  const user = await getCurrentUser()
+
+  if (!user) {
+    throw new Error('Authentication required')
+  }
+
+  const profile = await getCompanyProfileForUser(supabase, user.id)
+
+  return {
+    organizationName: profile.organization_name,
+    companyPublicToken: profile.company_public_token,
+    educationPath: `/education/company/${profile.company_public_token}`,
+  }
 }
 
 export async function getSopForManager(id: string) {
@@ -140,7 +176,23 @@ export async function getPublicEducationByToken(publicToken: string) {
   return data
 }
 
-export async function createSop(input: Omit<SopInsert, 'owner_id'> & { questions?: NewQuizQuestionInput[] }) {
+export async function listCompanyEducationSops(companyPublicToken: string) {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('sops')
+    .select('id, title, description, languages, public_token, created_at')
+    .eq('company_public_token', companyPublicToken)
+    .eq('status', 'active')
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    throw error
+  }
+
+  return data
+}
+
+export async function createSop(input: Omit<SopInsert, 'owner_id' | 'company_public_token'> & { questions?: NewQuizQuestionInput[] }) {
   const supabase = await createClient()
   const user = await getCurrentUser()
 
@@ -149,9 +201,10 @@ export async function createSop(input: Omit<SopInsert, 'owner_id'> & { questions
   }
 
   const { questions = [], ...sopInput } = input
+  const profile = await getCompanyProfileForUser(supabase, user.id)
   const { data: sop, error: sopError } = await supabase
     .from('sops')
-    .insert({ ...sopInput, owner_id: user.id })
+    .insert({ ...sopInput, owner_id: user.id, company_public_token: profile.company_public_token })
     .select()
     .single()
 

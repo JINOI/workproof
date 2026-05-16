@@ -9,6 +9,7 @@ export type Database = {
           role: 'admin' | 'manager'
           display_name: string | null
           organization_name: string | null
+          company_public_token: string
           created_at: string
           updated_at: string
         }
@@ -17,6 +18,7 @@ export type Database = {
           role?: 'admin' | 'manager'
           display_name?: string | null
           organization_name?: string | null
+          company_public_token?: string
           created_at?: string
           updated_at?: string
         }
@@ -24,6 +26,7 @@ export type Database = {
           role?: 'admin' | 'manager'
           display_name?: string | null
           organization_name?: string | null
+          company_public_token?: string
           updated_at?: string
         }
         Relationships: [
@@ -45,6 +48,7 @@ export type Database = {
           source_file_path: string | null
           source_file_name: string | null
           source_file_mime: string | null
+          company_public_token: string
           ai_summary: Json
           education_cards: Json
           languages: string[]
@@ -61,6 +65,7 @@ export type Database = {
           source_file_path?: string | null
           source_file_name?: string | null
           source_file_mime?: string | null
+          company_public_token: string
           ai_summary?: Json
           education_cards?: Json
           languages?: string[]
@@ -75,6 +80,7 @@ export type Database = {
           source_file_path?: string | null
           source_file_name?: string | null
           source_file_mime?: string | null
+          company_public_token?: string
           ai_summary?: Json
           education_cards?: Json
           languages?: string[]

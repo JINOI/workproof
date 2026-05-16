@@ -3,8 +3,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
-import { AlertTriangle, ArrowLeft, BookOpenCheck, CheckCircle, Clock, Download, QrCode, Share2 } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, BookOpenCheck, CheckCircle, Clock, Download, Share2 } from 'lucide-react'
 
+import { CompanyQrDialogButton } from '@/components/dashboard/company-qr'
 import { DashboardHeader } from '@/components/dashboard/header'
 import { Sidebar } from '@/components/dashboard/sidebar'
 import { type WorkerDetail, WorkerDetailModal } from '@/components/dashboard/worker-detail-modal'
@@ -463,10 +464,7 @@ export default function SOPDetailPage() {
                 <Download className="mr-2 h-4 w-4" />
                 리포트 다운로드
               </Button>
-              <Button variant="outline" className="border-[#e5e8eb]" disabled={!sop}>
-                <QrCode className="mr-2 h-4 w-4" />
-                QR 보기
-              </Button>
+              <CompanyQrDialogButton disabled={!sop} />
               <Button className="bg-[#3182f6] text-white hover:bg-[#1b64da]" disabled={!sop}>
                 <Share2 className="mr-2 h-4 w-4" />
                 공유
