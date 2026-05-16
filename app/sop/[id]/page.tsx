@@ -61,11 +61,11 @@ export default function SOPDetailPage() {
           <div className="flex items-start justify-between">
             <div>
               <Link 
-                href="/dashboard" 
+                href="/sop" 
                 className="flex items-center gap-1 text-sm text-[#6b7684] hover:text-[#333d4b] mb-4"
               >
                 <ArrowLeft className="h-4 w-4" />
-                대시보드로
+                SOP 목록으로
               </Link>
               <div className="flex items-center gap-2 mb-2">
                 <Badge variant="secondary" className="bg-[#e8f3ff] text-[#3182f6]">
