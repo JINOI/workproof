@@ -95,6 +95,7 @@ export type Database = {
         Row: {
           id: string
           sop_id: string
+          organization_name: string | null
           language: string
           position: number
           type: 'ox' | 'multiple'
@@ -107,6 +108,7 @@ export type Database = {
         Insert: {
           id?: string
           sop_id: string
+          organization_name?: string | null
           language?: string
           position: number
           type: 'ox' | 'multiple'
@@ -117,6 +119,7 @@ export type Database = {
           created_at?: string
         }
         Update: {
+          organization_name?: string | null
           language?: string
           position?: number
           type?: 'ox' | 'multiple'

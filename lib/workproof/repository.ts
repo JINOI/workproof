@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto'
 import { createClient } from '@/lib/supabase/server'
 import type { QuizQuestionInsert, SopInsert, SubmitEducationPayload } from './types'
 
-type NewQuizQuestionInput = Omit<QuizQuestionInsert, 'sop_id'>
+type NewQuizQuestionInput = Omit<QuizQuestionInsert, 'sop_id' | 'organization_name'>
 
 export async function getCurrentUser() {
   const supabase = await createClient()
@@ -116,10 +116,21 @@ export async function createSop(input: Omit<SopInsert, 'owner_id'> & { questions
   }
 
   if (questions.length > 0) {
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('organization_name')
+      .eq('id', user.id)
+      .maybeSingle()
+
+    if (profileError) {
+      throw profileError
+    }
+
     const { error: questionsError } = await supabase.from('quiz_questions').insert(
       questions.map((question) => ({
         ...question,
         sop_id: sop.id,
+        organization_name: profile?.organization_name ?? null,
       })),
     )
 
