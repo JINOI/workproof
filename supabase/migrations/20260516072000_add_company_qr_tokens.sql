@@ -14,6 +14,19 @@ alter column company_public_token set not null;
 create unique index if not exists profiles_company_public_token_key
 on public.profiles(company_public_token);
 
+insert into public.profiles (id, display_name, organization_name)
+select
+  users.id,
+  nullif(users.raw_user_meta_data ->> 'display_name', ''),
+  nullif(users.raw_user_meta_data ->> 'organization_name', '')
+from auth.users
+where not exists (
+  select 1
+  from public.profiles
+  where profiles.id = users.id
+)
+on conflict (id) do nothing;
+
 insert into public.profiles (id)
 select distinct sops.owner_id
 from public.sops
