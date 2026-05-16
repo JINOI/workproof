@@ -61,7 +61,6 @@ export default function DashboardPage() {
   const [frequentSopTemplates, setFrequentSopTemplates] = useState<FrequentSopTemplate[]>([])
   const [addingTemplateKey, setAddingTemplateKey] = useState<string | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
-  const [searchValue, setSearchValue] = useState('')
   const [showNewSOPModal, setShowNewSOPModal] = useState(false)
   const [refreshToken, setRefreshToken] = useState(0)
 
@@ -133,11 +132,6 @@ export default function DashboardPage() {
     }
   }, [router, refreshToken])
 
-  const filteredSOPs = useMemo(
-    () => sops.filter((sop) => sop.title.toLowerCase().includes(searchValue.toLowerCase())),
-    [searchValue, sops],
-  )
-
   const stats = useMemo(() => {
     if (sops.length === 0) {
       return emptyStats
@@ -195,11 +189,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <DashboardLayout
-      searchValue={searchValue}
-      onSearchChange={setSearchValue}
-      headerActions={<CompanyQrDialogButton />}
-    >
+    <DashboardLayout headerActions={<CompanyQrDialogButton />}>
       <main className="flex-1 space-y-6 p-6">
         <div>
           <h1 className="mb-1 text-2xl font-bold text-[#333d4b]">{formatDashboardTitle(companyQr?.organizationName)}</h1>
@@ -218,7 +208,7 @@ export default function DashboardPage() {
         />
 
         <SOPList
-          sops={filteredSOPs}
+          sops={sops}
           isLoading={isLoadingSops}
           onNewSOP={() => setShowNewSOPModal(true)}
           onSOPDeleted={(sopId) => {
