@@ -25,6 +25,13 @@ export type WorkerFilterOption = {
   label: string
 }
 
+export type WrongQuestionLabelSource = {
+  id: string
+  language: string | null
+  position: number | null
+  prompt: string
+}
+
 const statusPriority: Record<WorkerStatus, number> = {
   failed: 4,
   warning: 3,
@@ -72,6 +79,25 @@ function getUniqueWrongAnswers(logs: WorkerLogRow[]) {
 
 function getUniqueSopTitles(logs: WorkerLogRow[]) {
   return Array.from(new Set(logs.map((log) => log.sopTitle))).sort((left, right) => left.localeCompare(right, 'ko-KR'))
+}
+
+export function getWrongQuestionLabels(questionIds: string[], questions: WrongQuestionLabelSource[]) {
+  const questionsById = new Map(questions.map((question) => [question.id, question]))
+
+  return questionIds.map((questionId) => {
+    const sourceQuestion = questionsById.get(questionId)
+    const question =
+      sourceQuestion && typeof sourceQuestion.position === 'number'
+        ? questions.find((candidate) => candidate.language === 'ko' && candidate.position === sourceQuestion.position) ?? sourceQuestion
+        : sourceQuestion
+    const prompt = question?.prompt.trim()
+
+    if (!question || !prompt) {
+      return questionId
+    }
+
+    return typeof question.position === 'number' ? `${question.position}. ${prompt}` : prompt
+  })
 }
 
 function groupWorkerLogs(logs: WorkerLogRow[]) {

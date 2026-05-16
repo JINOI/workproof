@@ -55,6 +55,13 @@ test('dashboard page disables the header search while SOP management keeps it en
   assert.match(sopLayoutTag, /onSearchChange=\{setSearchValue\}/)
 })
 
+test('safety management guide detail page does not show a report export button', () => {
+  const source = readSource('app/sop/[id]/page.tsx')
+
+  assert.doesNotMatch(source, /리포트\s*(다운로드|추출)/)
+  assert.doesNotMatch(source, /\bDownload\b/)
+})
+
 test('company QR dialog trigger uses the requested button label', () => {
   const source = readSource('components/dashboard/company-qr.tsx')
 
