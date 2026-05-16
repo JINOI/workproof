@@ -82,11 +82,11 @@ export function buildDashboardStatTrends(
       ? { label: `이번 주 +${newGuidesThisWeek}개 등록`, tone: 'positive' }
       : { label: '이번 주 신규 가이드 없음', tone: 'neutral' }
 
-  const totalWorkersTrend = previousSnapshot
+  const totalWorkersTrend: DashboardStatTrend = previousSnapshot
     ? trendFromDelta(stats.totalWorkers - previousSnapshot.totalWorkers, '명')
     : { label: '실시간 집계 기준', tone: 'neutral' }
 
-  const safetyRateTrend = previousSnapshot
+  const safetyRateTrend: DashboardStatTrend = previousSnapshot
     ? trendFromDelta(stats.safetyRate - previousSnapshot.safetyRate, '%p')
     : { label: '실시간 집계 기준', tone: 'neutral' }
 
