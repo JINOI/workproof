@@ -160,7 +160,16 @@ export default function DashboardPage() {
 
           <StatsCards {...stats} />
 
-          <SOPList sops={filteredSOPs} isLoading={isLoadingSops} onNewSOP={() => setShowNewSOPModal(true)} />
+          <SOPList
+            sops={filteredSOPs}
+            isLoading={isLoadingSops}
+            onNewSOP={() => setShowNewSOPModal(true)}
+            onSOPDeleted={(sopId) => {
+              setSops((currentSops) => currentSops.filter((sop) => sop.id !== sopId))
+              setLoadError(null)
+            }}
+            onDeleteError={setLoadError}
+          />
         </main>
       </div>
 
