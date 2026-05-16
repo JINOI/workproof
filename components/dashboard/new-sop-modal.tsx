@@ -26,6 +26,8 @@ type CreatedSop = {
   languages: string[]
 }
 
+const MAX_UPLOAD_BYTES = 20 * 1024 * 1024
+
 function getErrorMessage(error: unknown) {
   if (error instanceof Error) return error.message
   return 'SOP 생성에 실패했습니다.'
@@ -52,6 +54,14 @@ export function NewSOPModal({ open, onOpenChange, onCreated }: NewSOPModalProps)
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0]
     setErrorMessage(null)
+
+    if (selectedFile && selectedFile.size > MAX_UPLOAD_BYTES) {
+      setFile(null)
+      event.target.value = ''
+      setErrorMessage('파일은 20MB 이하만 업로드할 수 있습니다.')
+      return
+    }
+
     setFile(selectedFile ?? null)
   }
 

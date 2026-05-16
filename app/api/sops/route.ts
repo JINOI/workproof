@@ -6,6 +6,9 @@ import { createSop, listSops, uploadSopSourceFile } from '@/lib/workproof/reposi
 
 export const runtime = 'nodejs'
 
+const MAX_UPLOAD_BYTES = 20 * 1024 * 1024
+const MAX_MULTIPART_BODY_BYTES = 25 * 1024 * 1024
+
 const createSopJsonSchema = z.object({
   title: z.string().min(1),
   description: z.string().nullable().optional(),
@@ -64,6 +67,14 @@ function resolveMimeType(file: File) {
   }
 }
 
+async function parseMultipartFormData(request: Request) {
+  try {
+    return await request.formData()
+  } catch {
+    throw new Error('업로드 요청을 해석하지 못했습니다. 파일은 20MB 이하인지 확인하고 다시 업로드하세요.')
+  }
+}
+
 export async function GET() {
   const sops = await listSops()
   return NextResponse.json({ sops })
@@ -74,14 +85,20 @@ export async function POST(request: Request) {
     const contentType = request.headers.get('content-type') ?? ''
 
     if (contentType.includes('multipart/form-data')) {
-      const formData = await request.formData()
+      const contentLength = Number(request.headers.get('content-length') ?? 0)
+
+      if (contentLength > MAX_MULTIPART_BODY_BYTES) {
+        return NextResponse.json({ error: '파일은 20MB 이하만 업로드할 수 있습니다.' }, { status: 413 })
+      }
+
+      const formData = await parseMultipartFormData(request)
       const file = formData.get('file')
 
       if (!(file instanceof File)) {
         return NextResponse.json({ error: 'SOP 문서 파일을 업로드하세요.' }, { status: 400 })
       }
 
-      if (file.size > 20 * 1024 * 1024) {
+      if (file.size > MAX_UPLOAD_BYTES) {
         return NextResponse.json({ error: '파일은 20MB 이하만 업로드할 수 있습니다.' }, { status: 400 })
       }
 
