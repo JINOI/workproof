@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 import { DashboardHeader } from '@/components/dashboard/header'
-import { CompanyQrPanel } from '@/components/dashboard/company-qr'
+import { CompanyQrDialogButton } from '@/components/dashboard/company-qr'
 import { NewSOPModal } from '@/components/dashboard/new-sop-modal'
 import { Sidebar } from '@/components/dashboard/sidebar'
 import { type DashboardSop, SOPList } from '@/components/dashboard/sop-list'
@@ -149,7 +149,7 @@ export default function DashboardPage() {
       <Sidebar />
 
       <div className="flex flex-1 flex-col">
-        <DashboardHeader searchValue={searchValue} onSearchChange={setSearchValue} />
+        <DashboardHeader searchValue={searchValue} onSearchChange={setSearchValue} headerActions={<CompanyQrDialogButton />} />
 
         <main className="flex-1 space-y-6 p-6">
           <div>
@@ -160,8 +160,6 @@ export default function DashboardPage() {
           {loadError && <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{loadError}</p>}
 
           <StatsCards {...stats} />
-
-          <CompanyQrPanel />
 
           <SOPList
             sops={filteredSOPs}
