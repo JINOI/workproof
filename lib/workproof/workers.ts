@@ -86,6 +86,22 @@ function groupWorkerLogs(logs: WorkerLogRow[]) {
   return groupedLogs
 }
 
+function groupWorkerSopLogs(logs: WorkerLogRow[]) {
+  const groupedLogs = new Map<string, { workerKey: string; logs: WorkerLogRow[] }>()
+
+  for (const log of logs) {
+    const workerKey = getWorkerKey(log.name, log.birthDate)
+    const workerSopKey = `${workerKey}|${log.sopId}`
+    const currentGroup = groupedLogs.get(workerSopKey) ?? { workerKey, logs: [] }
+    groupedLogs.set(workerSopKey, {
+      workerKey,
+      logs: [...currentGroup.logs, { ...log, name: normalizeWorkerName(log.name) }],
+    })
+  }
+
+  return groupedLogs
+}
+
 export function buildLatestWorkerRows(logs: WorkerLogRow[]): WorkerSummaryRow[] {
   return Array.from(groupWorkerLogs(logs).entries())
     .map(([workerKey, workerLogs]) => {
@@ -113,6 +129,28 @@ export function summarizeLatestWorkerCompletion(logs: WorkerLogRow[]) {
     completedWorkers,
     completionRate: rows.length === 0 ? 0 : Math.round((completedWorkers / rows.length) * 100),
   }
+}
+
+export function buildWorkerSopRows(logs: WorkerLogRow[]): WorkerSummaryRow[] {
+  return Array.from(groupWorkerSopLogs(logs).entries())
+    .map(([workerSopKey, group]) => {
+      const latestLog = getLatestLog(group.logs)
+
+      return {
+        ...latestLog,
+        id: workerSopKey,
+        workerKey: group.workerKey,
+        sopTitles: [latestLog.sopTitle],
+        sopCount: 1,
+        logCount: group.logs.length,
+      }
+    })
+    .sort(
+      (left, right) =>
+        left.name.localeCompare(right.name, 'ko-KR') ||
+        left.birthDate.localeCompare(right.birthDate) ||
+        left.sopTitle.localeCompare(right.sopTitle, 'ko-KR'),
+    )
 }
 
 export function buildWorkerRows(logs: WorkerLogRow[]): WorkerSummaryRow[] {

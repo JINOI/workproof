@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { createClient } from '@/lib/supabase/client'
 import {
+  buildWorkerSopRows,
   buildWorkerRows,
   filterWorkerLogs,
   getSopFilterOptions,
@@ -100,6 +101,24 @@ function toWorkerLogRow(log: ApiEducationLog, sopId: string, sopTitle: string): 
   }
 }
 
+function matchesWorkerSearch(worker: WorkerRow, searchValue: string) {
+  const normalizedSearchValue = searchValue.trim().toLowerCase()
+
+  if (!normalizedSearchValue) {
+    return true
+  }
+
+  const statusLabel = statusConfig[worker.status].label
+
+  return (
+    worker.name.toLowerCase().includes(normalizedSearchValue) ||
+    worker.birthDate.includes(normalizedSearchValue) ||
+    worker.sopTitle.toLowerCase().includes(normalizedSearchValue) ||
+    worker.sopTitles.some((sopTitle) => sopTitle.toLowerCase().includes(normalizedSearchValue)) ||
+    statusLabel.includes(normalizedSearchValue)
+  )
+}
+
 export default function WorkersPage() {
   const router = useRouter()
   const [isCheckingSession, setIsCheckingSession] = useState(true)
@@ -187,38 +206,33 @@ export default function WorkersPage() {
   const workerFilterOptions = useMemo(() => getWorkerFilterOptions(workerLogs), [workerLogs])
   const sopFilterOptions = useMemo(() => getSopFilterOptions(workerLogs), [workerLogs])
 
-  const filteredWorkers = useMemo(() => {
-    const filteredLogs = filterWorkerLogs(workerLogs, {
-      workerKey: selectedWorkerKey === ALL_WORKERS_VALUE ? undefined : selectedWorkerKey,
-      sopId: selectedSopId === ALL_SOPS_VALUE ? undefined : selectedSopId,
-    })
-    const rows = buildWorkerRows(filteredLogs)
-    const normalizedSearchValue = searchValue.trim().toLowerCase()
+  const filteredLogs = useMemo(
+    () =>
+      filterWorkerLogs(workerLogs, {
+        workerKey: selectedWorkerKey === ALL_WORKERS_VALUE ? undefined : selectedWorkerKey,
+        sopId: selectedSopId === ALL_SOPS_VALUE ? undefined : selectedSopId,
+      }),
+    [selectedSopId, selectedWorkerKey, workerLogs],
+  )
 
-    if (!normalizedSearchValue) {
-      return rows
-    }
+  const countWorkers = useMemo(
+    () => buildWorkerRows(filteredLogs).filter((worker) => matchesWorkerSearch(worker, searchValue)),
+    [filteredLogs, searchValue],
+  )
 
-    return rows.filter((worker) => {
-      const statusLabel = statusConfig[worker.status].label
-      return (
-        worker.name.toLowerCase().includes(normalizedSearchValue) ||
-        worker.birthDate.includes(normalizedSearchValue) ||
-        worker.sopTitle.toLowerCase().includes(normalizedSearchValue) ||
-        worker.sopTitles.some((sopTitle) => sopTitle.toLowerCase().includes(normalizedSearchValue)) ||
-        statusLabel.includes(normalizedSearchValue)
-      )
-    })
-  }, [searchValue, selectedSopId, selectedWorkerKey, workerLogs])
+  const filteredWorkers = useMemo(
+    () => buildWorkerSopRows(filteredLogs).filter((worker) => matchesWorkerSearch(worker, searchValue)),
+    [filteredLogs, searchValue],
+  )
 
   const workerCounts = useMemo(
     () => ({
-      total: filteredWorkers.length,
-      safe: filteredWorkers.filter((worker) => worker.status === 'safe').length,
-      warning: filteredWorkers.filter((worker) => worker.status === 'warning' || worker.status === 'failed').length,
-      pending: filteredWorkers.filter((worker) => worker.status === 'pending').length,
+      total: countWorkers.length,
+      safe: countWorkers.filter((worker) => worker.status === 'safe').length,
+      warning: countWorkers.filter((worker) => worker.status === 'warning' || worker.status === 'failed').length,
+      pending: countWorkers.filter((worker) => worker.status === 'pending').length,
     }),
-    [filteredWorkers],
+    [countWorkers],
   )
 
   const handleWorkerClick = (worker: WorkerRow) => {
