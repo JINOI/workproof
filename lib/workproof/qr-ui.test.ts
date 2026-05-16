@@ -18,6 +18,13 @@ test('dashboard and SOP pages move the company QR trigger into the page header s
   }
 })
 
+test('landing page does not show worker QR trial button', () => {
+  const source = readSource('app/page.tsx')
+
+  assert.doesNotMatch(source, /근로자 QR 체험하기|QR 체험/)
+  assert.doesNotMatch(source, /DEFAULT_WORKER_EDUCATION_PATH/)
+})
+
 test('dashboard title uses the organization name', () => {
   const source = readSource('app/dashboard/page.tsx')
 
