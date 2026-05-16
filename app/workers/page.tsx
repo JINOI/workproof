@@ -4,8 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { AlertTriangle, CheckCircle, Clock, Users } from 'lucide-react'
 
-import { DashboardHeader } from '@/components/dashboard/header'
-import { Sidebar } from '@/components/dashboard/sidebar'
+import { DashboardLayout } from '@/components/dashboard/dashboard-layout'
 import { type WorkerDetail, WorkerDetailModal } from '@/components/dashboard/worker-detail-modal'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -211,12 +210,11 @@ export default function WorkersPage() {
   }
 
   return (
-    <div className="flex min-h-screen bg-background">
-      <Sidebar />
-
-      <div className="flex flex-1 flex-col">
-        <DashboardHeader searchValue={searchValue} onSearchChange={setSearchValue} placeholder="근로자 이름, 생년월일, SOP 또는 상태로 검색..." />
-
+    <DashboardLayout
+      searchValue={searchValue}
+      onSearchChange={setSearchValue}
+      placeholder="근로자 이름, 생년월일, SOP 또는 상태로 검색..."
+    >
         <main className="flex-1 space-y-6 p-6">
           <div>
             <h1 className="mb-1 text-2xl font-bold text-[#333d4b]">근로자</h1>
@@ -293,10 +291,9 @@ export default function WorkersPage() {
             </CardContent>
           </Card>
         </main>
-      </div>
 
       <WorkerDetailModal worker={selectedWorker} open={showWorkerModal} onOpenChange={setShowWorkerModal} />
-    </div>
+    </DashboardLayout>
   )
 }
 

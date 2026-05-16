@@ -12,9 +12,9 @@ test('rejects an invalid email address', () => {
 })
 
 test('rejects a short password', () => {
-  assert.equal(validateAuthForm({ mode: 'sign-up', email: 'manager@workproof.kr', password: 'short' }), '비밀번호는 6자 이상이어야 합니다.')
+  assert.equal(validateAuthForm({ mode: 'sign-up', email: 'manager@safebridge.kr', password: 'short' }), '비밀번호는 6자 이상이어야 합니다.')
 })
 
 test('accepts valid sign-up input', () => {
-  assert.equal(validateAuthForm({ mode: 'sign-up', email: 'manager@workproof.kr', password: 'password123' }), null)
+  assert.equal(validateAuthForm({ mode: 'sign-up', email: 'manager@safebridge.kr', password: 'password123' }), null)
 })

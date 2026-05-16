@@ -8,8 +8,8 @@ const _geist = Geist({ subsets: ['latin'] })
 const _geistMono = Geist_Mono({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'WorkProof - SOP 교육 이수 증빙',
-  description: 'SOP 교육을 만들고 근로자 이수 기록을 관리하는 WorkProof 관리자 앱입니다.',
+  title: 'SafeBridge - 언어의 장벽을 넘어, 안전한 일터로',
+  description: 'SOP 교육을 만들고 근로자 이수 기록을 관리하는 SafeBridge 관리자 앱입니다.',
   generator: 'v0.app',
   icons: {
     icon: [

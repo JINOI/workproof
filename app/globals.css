@@ -4,44 +4,48 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
+  --brand-blue: #1e5a9e;
+  --brand-green: #4cb050;
+  --brand-blue-light: #dceaf5;
+  --brand-green-light: #e6f4e7;
   --background: #f9fafb;
   --foreground: #333d4b;
   --card: #ffffff;
   --card-foreground: #333d4b;
   --popover: #ffffff;
   --popover-foreground: #333d4b;
-  --primary: #3182f6;
+  --primary: var(--brand-blue);
   --primary-foreground: #ffffff;
   --secondary: #f2f4f6;
   --secondary-foreground: #333d4b;
   --muted: #f2f4f6;
   --muted-foreground: #6b7684;
-  --accent: #e8f3ff;
-  --accent-foreground: #3182f6;
+  --accent: var(--brand-blue-light);
+  --accent-foreground: var(--brand-blue);
   --destructive: #f04452;
   --destructive-foreground: #ffffff;
   --border: #e5e8eb;
   --input: #e5e8eb;
-  --ring: #3182f6;
-  --chart-1: #3182f6;
-  --chart-2: #00d082;
+  --ring: var(--brand-blue);
+  --chart-1: var(--brand-blue);
+  --chart-2: var(--brand-green);
   --chart-3: #ffbb00;
   --chart-4: #f04452;
   --chart-5: #6b7684;
   --radius: 0.75rem;
   --sidebar: #ffffff;
   --sidebar-foreground: #333d4b;
-  --sidebar-primary: #3182f6;
+  --sidebar-primary: var(--brand-blue);
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #e8f3ff;
-  --sidebar-accent-foreground: #3182f6;
+  --sidebar-accent: var(--brand-blue-light);
+  --sidebar-accent-foreground: var(--brand-blue);
   --sidebar-border: #e5e8eb;
-  --sidebar-ring: #3182f6;
+  --sidebar-ring: var(--brand-blue);
   
-  /* Custom WorkProof colors */
-  --success: #00d082;
+  /* Custom SafeBridge colors */
+  --success: var(--brand-green);
   --success-foreground: #ffffff;
-  --success-light: #e6f9f1;
+  --success-light: var(--brand-green-light);
   --warning: #ffbb00;
   --warning-foreground: #b88600;
   --warning-light: #fff4d6;
@@ -56,34 +60,34 @@
   --card-foreground: #f9fafb;
   --popover: #1a1a1a;
   --popover-foreground: #f9fafb;
-  --primary: #3182f6;
+  --primary: var(--brand-blue);
   --primary-foreground: #ffffff;
   --secondary: #2a2a2a;
   --secondary-foreground: #f9fafb;
   --muted: #2a2a2a;
   --muted-foreground: #8b95a1;
   --accent: #1a3a5c;
-  --accent-foreground: #3182f6;
+  --accent-foreground: var(--brand-blue);
   --destructive: #f04452;
   --destructive-foreground: #ffffff;
   --border: #333d4b;
   --input: #333d4b;
-  --ring: #3182f6;
-  --chart-1: #3182f6;
-  --chart-2: #00d082;
+  --ring: var(--brand-blue);
+  --chart-1: var(--brand-blue);
+  --chart-2: var(--brand-green);
   --chart-3: #ffbb00;
   --chart-4: #f04452;
   --chart-5: #8b95a1;
   --sidebar: #1a1a1a;
   --sidebar-foreground: #f9fafb;
-  --sidebar-primary: #3182f6;
+  --sidebar-primary: var(--brand-blue);
   --sidebar-primary-foreground: #ffffff;
   --sidebar-accent: #1a3a5c;
-  --sidebar-accent-foreground: #3182f6;
+  --sidebar-accent-foreground: var(--brand-blue);
   --sidebar-border: #333d4b;
   --sidebar-ring: #3182f6;
   
-  /* Custom WorkProof colors */
+  /* Custom SafeBridge colors */
   --success: #00d082;
   --success-foreground: #ffffff;
   --success-light: #0d3326;
@@ -134,7 +138,7 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
   
-  /* Custom WorkProof semantic colors */
+  /* Custom SafeBridge semantic colors */
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
   --color-success-light: var(--success-light);
@@ -151,5 +155,65 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+.landing-page-gradient {
+  background: linear-gradient(
+    135deg,
+    var(--brand-blue-light) 0%,
+    #e8f2f9 32%,
+    #edf6ef 68%,
+    #ffffff 100%
+  );
+}
+
+/* Landing hero — sequential line reveal */
+@keyframes landing-line-rise {
+  0% {
+    opacity: 0;
+    transform: translateY(18px);
+    filter: blur(4px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+.landing-hero-line {
+  opacity: 0;
+  animation: landing-line-rise 0.48s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-hero-line {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+  }
+}
+
+/* Dashboard — Toss-style page transition */
+@keyframes dashboard-page-enter {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dashboard-page-transition {
+  animation: dashboard-page-enter 0.26s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-page-transition {
+    animation: none !important;
   }
 }

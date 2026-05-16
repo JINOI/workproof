@@ -3,10 +3,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
-import { DashboardHeader } from '@/components/dashboard/header'
 import { CompanyQrDialogButton } from '@/components/dashboard/company-qr'
+import { DashboardLayout } from '@/components/dashboard/dashboard-layout'
 import { NewSOPModal } from '@/components/dashboard/new-sop-modal'
-import { Sidebar } from '@/components/dashboard/sidebar'
 import { type DashboardSop, SOPList } from '@/components/dashboard/sop-list'
 import { createClient } from '@/lib/supabase/client'
 
@@ -127,39 +126,33 @@ export default function SOPManagementPage() {
   }
 
   return (
-    <div className="flex min-h-screen bg-background">
-      <Sidebar />
+    <DashboardLayout
+      searchValue={searchValue}
+      onSearchChange={setSearchValue}
+      placeholder="SOP 제목 또는 설명으로 검색..."
+      headerActions={<CompanyQrDialogButton />}
+    >
+      <main className="flex-1 space-y-6 p-6">
+        <div>
+          <h1 className="mb-1 text-2xl font-bold text-[#333d4b]">SOP 관리</h1>
+          <p className="text-[#6b7684]">Supabase에 등록된 SOP 목록을 확인하고 필요한 문서를 검색하세요.</p>
+        </div>
 
-      <div className="flex flex-1 flex-col">
-        <DashboardHeader
-          searchValue={searchValue}
-          onSearchChange={setSearchValue}
-          placeholder="SOP 제목 또는 설명으로 검색..."
-          headerActions={<CompanyQrDialogButton />}
+        {loadError && <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{loadError}</p>}
+
+        <SOPList
+          sops={filteredSOPs}
+          isLoading={isLoadingSops}
+          onNewSOP={() => setShowNewSOPModal(true)}
+          onSOPDeleted={(sopId) => {
+            setSops((currentSops) => currentSops.filter((sop) => sop.id !== sopId))
+            setLoadError(null)
+          }}
+          onDeleteError={setLoadError}
         />
-
-        <main className="flex-1 space-y-6 p-6">
-          <div>
-            <h1 className="mb-1 text-2xl font-bold text-[#333d4b]">SOP 관리</h1>
-            <p className="text-[#6b7684]">Supabase에 등록된 SOP 목록을 확인하고 필요한 문서를 검색하세요.</p>
-          </div>
-
-          {loadError && <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{loadError}</p>}
-
-          <SOPList
-            sops={filteredSOPs}
-            isLoading={isLoadingSops}
-            onNewSOP={() => setShowNewSOPModal(true)}
-            onSOPDeleted={(sopId) => {
-              setSops((currentSops) => currentSops.filter((sop) => sop.id !== sopId))
-              setLoadError(null)
-            }}
-            onDeleteError={setLoadError}
-          />
-        </main>
-      </div>
+      </main>
 
       <NewSOPModal open={showNewSOPModal} onOpenChange={setShowNewSOPModal} onCreated={() => setRefreshToken((value) => value + 1)} />
-    </div>
+    </DashboardLayout>
   )
 }

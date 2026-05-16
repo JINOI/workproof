@@ -2,15 +2,16 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { CheckCircle2, FileText, QrCode, Shield } from 'lucide-react'
 
+import { LandingHeroPanel } from '@/components/landing/landing-hero-panel'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { DEFAULT_WORKER_EDUCATION_PATH, QrCodeLink } from '@/components/qr-code-link'
+import { DEFAULT_WORKER_EDUCATION_PATH } from '@/components/qr-code-link'
 import { type AuthMode, validateAuthForm } from '@/lib/auth/validation'
 import { createClient } from '@/lib/supabase/client'
+import { cn } from '@/lib/utils'
 
 function getAuthErrorMessage(message: string) {
   if (message.toLowerCase().includes('invalid login credentials')) {
@@ -101,175 +102,150 @@ export default function LandingPage() {
   }
 
   return (
-    <div className="flex min-h-screen bg-white">
-      <section className="hidden w-1/2 flex-col justify-between bg-[#e8f3ff] p-12 lg:flex">
-        <div>
-          <div className="mb-16 flex items-center gap-2">
-            <Shield className="h-8 w-8 text-[#3182f6]" />
-            <span className="text-xl font-bold text-[#333d4b]">WorkProof</span>
-          </div>
+    <div className="landing-page relative min-h-screen">
+      <div className="landing-page-gradient pointer-events-none absolute inset-0" />
 
-          <div className="max-w-lg space-y-4">
-            <p className="text-sm font-medium text-[#3182f6]">SOP 교육 이수 증빙</p>
-            <h1 className="text-balance text-4xl font-bold leading-tight text-[#333d4b]">
-              현장 교육을 만들고,
-              <br />
-              이수 기록을 바로 남기세요.
-            </h1>
-            <p className="text-[#6b7684]">
-              SOP 문서를 교육 카드와 퀴즈로 정리하고, 근로자는 QR 링크로 교육을 완료합니다.
-              관리자는 대시보드에서 이수 상태를 확인할 수 있습니다.
-            </p>
-          </div>
-        </div>
-
-        <div className="space-y-10">
-          <div className="flex items-center gap-8">
-            {[
-              { icon: FileText, label: 'SOP 등록' },
-              { icon: QrCode, label: 'QR 교육 링크' },
-              { icon: CheckCircle2, label: '이수 기록 저장' },
-            ].map((item) => (
-              <div key={item.label} className="flex flex-col items-center gap-2">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white">
-                  <item.icon className="h-5 w-5 text-[#3182f6]" />
-                </div>
-                <span className="text-xs text-[#6b7684]">{item.label}</span>
-              </div>
-            ))}
-          </div>
-
-          <div className="flex flex-col items-start gap-3">
-            <p className="text-sm font-medium text-[#333d4b]">근로자 교육 화면 QR</p>
-            <QrCodeLink path={DEFAULT_WORKER_EDUCATION_PATH} size={168} />
-          </div>
-        </div>
-      </section>
-
-      <section className="flex w-full flex-col lg:w-1/2">
-        <div className="flex justify-end p-6">
-          <Button variant="ghost" className="text-[#3182f6]" onClick={() => router.push(DEFAULT_WORKER_EDUCATION_PATH)}>
+      <div className="relative z-10 flex min-h-screen flex-col">
+        <div className="flex justify-end px-4 pt-4 sm:px-6 sm:pt-6">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-[var(--brand-blue)] hover:bg-white/50"
+            onClick={() => router.push(DEFAULT_WORKER_EDUCATION_PATH)}
+          >
             근로자 QR 체험하기 &rarr;
           </Button>
         </div>
 
-        <div className="flex flex-1 items-center justify-center px-6 py-10">
-          <Card className="w-full max-w-md border-0 shadow-none lg:border lg:shadow-lg">
-            <CardHeader className="text-center lg:text-left">
-              <div className="mb-4 flex items-center gap-2 lg:hidden">
-                <Shield className="h-6 w-6 text-[#3182f6]" />
-                <span className="text-lg font-bold text-[#333d4b]">WorkProof</span>
-              </div>
-              <CardTitle className="text-2xl text-[#333d4b]">{isSignUp ? '관리자 계정 만들기' : '관리자 로그인'}</CardTitle>
-              <CardDescription className="text-[#6b7684]">
-                {isSignUp ? '새 WorkProof 관리자 계정을 생성합니다.' : '가입한 이메일과 비밀번호로 접속하세요.'}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="mb-6 grid grid-cols-2 rounded-md bg-[#f2f4f6] p-1">
-                <Button
-                  type="button"
-                  variant={mode === 'sign-in' ? 'default' : 'ghost'}
-                  className={mode === 'sign-in' ? 'bg-white text-[#333d4b] shadow-sm hover:bg-white' : 'text-[#6b7684]'}
-                  onClick={() => {
-                    setMode('sign-in')
-                    setErrorMessage(null)
-                    setStatusMessage(null)
-                  }}
-                >
-                  로그인
-                </Button>
-                <Button
-                  type="button"
-                  variant={mode === 'sign-up' ? 'default' : 'ghost'}
-                  className={mode === 'sign-up' ? 'bg-white text-[#333d4b] shadow-sm hover:bg-white' : 'text-[#6b7684]'}
-                  onClick={() => {
-                    setMode('sign-up')
-                    setErrorMessage(null)
-                    setStatusMessage(null)
-                  }}
-                >
-                  회원가입
-                </Button>
-              </div>
+        <div className="relative flex flex-1 flex-col">
+          <LandingHeroPanel />
 
-              <form onSubmit={handleSubmit} className="space-y-4">
-                {isSignUp && (
-                  <>
-                    <div className="space-y-2">
-                      <Label htmlFor="displayName" className="text-[#333d4b]">
-                        이름
-                      </Label>
-                      <Input
-                        id="displayName"
-                        type="text"
-                        placeholder="홍길동"
-                        value={displayName}
-                        onChange={(event) => setDisplayName(event.target.value)}
-                        className="h-12 border-[#e5e8eb] focus:border-[#3182f6] focus:ring-[#3182f6]"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="organizationName" className="text-[#333d4b]">
-                        회사/현장명
-                      </Label>
-                      <Input
-                        id="organizationName"
-                        type="text"
-                        placeholder="워크프루프 현장"
-                        value={organizationName}
-                        onChange={(event) => setOrganizationName(event.target.value)}
-                        className="h-12 border-[#e5e8eb] focus:border-[#3182f6] focus:ring-[#3182f6]"
-                      />
-                    </div>
-                  </>
-                )}
+          <div className="flex items-end justify-center px-4 pb-6 sm:px-6 sm:pb-8 lg:absolute lg:bottom-10 lg:right-10 lg:justify-end lg:p-0 xl:bottom-12 xl:right-12">
+            <Card className="w-full max-w-[320px] border border-white/60 bg-white/90 shadow-lg backdrop-blur-md sm:max-w-[340px]">
+              <CardHeader className="space-y-1 px-5 pb-3 pt-5">
+                <CardTitle className="text-lg text-[#333d4b]">
+                  {isSignUp ? '관리자 계정 만들기' : '관리자 로그인'}
+                </CardTitle>
+                <CardDescription className="text-xs text-[#6b7684]">
+                  {isSignUp ? '새 SafeBridge 관리자 계정을 생성합니다.' : '가입한 이메일과 비밀번호로 접속하세요.'}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="px-5 pb-8 pt-0">
+                <div className="mb-5 flex border-b border-[#e5e8eb]" role="tablist" aria-label="로그인 방식 선택">
+                  {(
+                    [
+                      { value: 'sign-in' as const, label: '로그인' },
+                      { value: 'sign-up' as const, label: '회원가입' },
+                    ] as const
+                  ).map((tab) => {
+                    const isActive = mode === tab.value
 
-                <div className="space-y-2">
-                  <Label htmlFor="email" className="text-[#333d4b]">
-                    이메일
-                  </Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    autoComplete="email"
-                    placeholder="manager@workproof.kr"
-                    value={email}
-                    onChange={(event) => setEmail(event.target.value)}
-                    className="h-12 border-[#e5e8eb] focus:border-[#3182f6] focus:ring-[#3182f6]"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password" className="text-[#333d4b]">
-                    비밀번호
-                  </Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    autoComplete={isSignUp ? 'new-password' : 'current-password'}
-                    placeholder="6자 이상"
-                    value={password}
-                    onChange={(event) => setPassword(event.target.value)}
-                    className="h-12 border-[#e5e8eb] focus:border-[#3182f6] focus:ring-[#3182f6]"
-                  />
+                    return (
+                      <button
+                        key={tab.value}
+                        type="button"
+                        role="tab"
+                        aria-selected={isActive}
+                        className={cn(
+                          'flex-1 border-b-2 px-2 pb-2.5 pt-1 text-sm font-medium transition-colors',
+                          isActive
+                            ? 'border-primary text-primary'
+                            : 'border-transparent text-[#8b95a1] hover:border-[#d1d6db] hover:text-[#333d4b]',
+                        )}
+                        onClick={() => {
+                          setMode(tab.value)
+                          setErrorMessage(null)
+                          setStatusMessage(null)
+                        }}
+                      >
+                        {tab.label}
+                      </button>
+                    )
+                  })}
                 </div>
 
-                {errorMessage && <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{errorMessage}</p>}
-                {statusMessage && <p className="rounded-md bg-blue-50 px-3 py-2 text-sm text-[#1b64da]">{statusMessage}</p>}
+                <form onSubmit={handleSubmit} className="space-y-3">
+                  {isSignUp && (
+                    <>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="displayName" className="text-xs text-[#333d4b]">
+                          이름
+                        </Label>
+                        <Input
+                          id="displayName"
+                          type="text"
+                          placeholder="홍길동"
+                          value={displayName}
+                          onChange={(event) => setDisplayName(event.target.value)}
+                          className="h-9 border-[#e5e8eb] text-sm focus:border-primary focus:ring-primary"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="organizationName" className="text-xs text-[#333d4b]">
+                          회사/현장명
+                        </Label>
+                        <Input
+                          id="organizationName"
+                          type="text"
+                          placeholder="SafeBridge 현장"
+                          value={organizationName}
+                          onChange={(event) => setOrganizationName(event.target.value)}
+                          className="h-9 border-[#e5e8eb] text-sm focus:border-primary focus:ring-primary"
+                        />
+                      </div>
+                    </>
+                  )}
 
-                <Button type="submit" className="h-12 w-full bg-[#3182f6] font-medium text-white hover:bg-[#1b64da]" disabled={isLoading}>
-                  {isLoading ? '처리 중...' : isSignUp ? '회원가입' : '로그인'}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
-        </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="email" className="text-xs text-[#333d4b]">
+                      이메일
+                    </Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      autoComplete="email"
+                      placeholder="manager@safebridge.kr"
+                      value={email}
+                      onChange={(event) => setEmail(event.target.value)}
+                      className="h-9 border-[#e5e8eb] text-sm focus:border-primary focus:ring-primary"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="password" className="text-xs text-[#333d4b]">
+                      비밀번호
+                    </Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      autoComplete={isSignUp ? 'new-password' : 'current-password'}
+                      placeholder="6자 이상"
+                      value={password}
+                      onChange={(event) => setPassword(event.target.value)}
+                      className="h-9 border-[#e5e8eb] text-sm focus:border-primary focus:ring-primary"
+                    />
+                  </div>
 
-        <div className="flex flex-col items-center gap-3 px-6 pb-10 lg:hidden">
-          <p className="text-sm font-medium text-[#333d4b]">근로자 교육 화면 QR</p>
-          <QrCodeLink path={DEFAULT_WORKER_EDUCATION_PATH} size={156} />
+                  {errorMessage && (
+                    <p className="rounded-md bg-red-50 px-2.5 py-1.5 text-xs text-red-700">{errorMessage}</p>
+                  )}
+                  {statusMessage && (
+                    <p className="rounded-md bg-blue-50 px-2.5 py-1.5 text-xs text-[#1b64da]">{statusMessage}</p>
+                  )}
+
+                  <Button
+                    type="submit"
+                    size="sm"
+                    className="mt-1 h-9 w-full bg-primary text-sm font-medium text-white hover:bg-primary/90"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? '처리 중...' : isSignUp ? '회원가입' : '로그인'}
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+          </div>
         </div>
-      </section>
+      </div>
     </div>
   )
 }

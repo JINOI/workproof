@@ -3,10 +3,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
-import { DashboardHeader } from '@/components/dashboard/header'
 import { CompanyQrDialogButton } from '@/components/dashboard/company-qr'
+import { DashboardLayout } from '@/components/dashboard/dashboard-layout'
 import { NewSOPModal } from '@/components/dashboard/new-sop-modal'
-import { Sidebar } from '@/components/dashboard/sidebar'
 import { type DashboardSop, SOPList } from '@/components/dashboard/sop-list'
 import { StatsCards } from '@/components/dashboard/stats-cards'
 import { createClient } from '@/lib/supabase/client'
@@ -145,36 +144,34 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="flex min-h-screen bg-background">
-      <Sidebar />
+    <DashboardLayout
+      searchValue={searchValue}
+      onSearchChange={setSearchValue}
+      headerActions={<CompanyQrDialogButton />}
+    >
+      <main className="flex-1 space-y-6 p-6">
+        <div>
+          <h1 className="mb-1 text-2xl font-bold text-[#333d4b]">관리자 대시보드</h1>
+          <p className="text-[#6b7684]">현재 계정에 등록된 SOP와 작업자 이수 현황만 표시합니다.</p>
+        </div>
 
-      <div className="flex flex-1 flex-col">
-        <DashboardHeader searchValue={searchValue} onSearchChange={setSearchValue} headerActions={<CompanyQrDialogButton />} />
+        {loadError && <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{loadError}</p>}
 
-        <main className="flex-1 space-y-6 p-6">
-          <div>
-            <h1 className="mb-1 text-2xl font-bold text-[#333d4b]">관리자 대시보드</h1>
-            <p className="text-[#6b7684]">현재 계정에 등록된 SOP와 작업자 이수 현황만 표시합니다.</p>
-          </div>
+        <StatsCards {...stats} />
 
-          {loadError && <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{loadError}</p>}
-
-          <StatsCards {...stats} />
-
-          <SOPList
-            sops={filteredSOPs}
-            isLoading={isLoadingSops}
-            onNewSOP={() => setShowNewSOPModal(true)}
-            onSOPDeleted={(sopId) => {
-              setSops((currentSops) => currentSops.filter((sop) => sop.id !== sopId))
-              setLoadError(null)
-            }}
-            onDeleteError={setLoadError}
-          />
-        </main>
-      </div>
+        <SOPList
+          sops={filteredSOPs}
+          isLoading={isLoadingSops}
+          onNewSOP={() => setShowNewSOPModal(true)}
+          onSOPDeleted={(sopId) => {
+            setSops((currentSops) => currentSops.filter((sop) => sop.id !== sopId))
+            setLoadError(null)
+          }}
+          onDeleteError={setLoadError}
+        />
+      </main>
 
       <NewSOPModal open={showNewSOPModal} onOpenChange={setShowNewSOPModal} onCreated={() => setRefreshToken((value) => value + 1)} />
-    </div>
+    </DashboardLayout>
   )
 }

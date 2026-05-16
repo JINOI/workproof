@@ -6,8 +6,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { AlertTriangle, ArrowLeft, BookOpenCheck, CheckCircle, Clock, Download, Share2 } from 'lucide-react'
 
 import { CompanyQrDialogButton } from '@/components/dashboard/company-qr'
-import { DashboardHeader } from '@/components/dashboard/header'
-import { Sidebar } from '@/components/dashboard/sidebar'
+import { DashboardLayout } from '@/components/dashboard/dashboard-layout'
 import { type WorkerDetail, WorkerDetailModal } from '@/components/dashboard/worker-detail-modal'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -429,12 +428,12 @@ export default function SOPDetailPage() {
   }
 
   return (
-    <div className="flex min-h-screen bg-background">
-      <Sidebar />
-
-      <div className="flex flex-1 flex-col">
-        <DashboardHeader searchValue={searchValue} onSearchChange={setSearchValue} placeholder="작업자를 검색하세요" />
-
+    <DashboardLayout
+      searchValue={searchValue}
+      onSearchChange={setSearchValue}
+      placeholder="작업자를 검색하세요"
+      headerActions={<CompanyQrDialogButton />}
+    >
         <main className="flex-1 space-y-6 p-6">
           <div className="flex items-start justify-between">
             <div>
@@ -545,10 +544,9 @@ export default function SOPDetailPage() {
             </CardContent>
           </Card>
         </main>
-      </div>
 
       <WorkerDetailModal worker={selectedWorker} open={showWorkerModal} onOpenChange={setShowWorkerModal} />
       <TrainingContentDialog sop={sop} open={showTrainingContent} onOpenChange={setShowTrainingContent} />
-    </div>
+    </DashboardLayout>
   )
 }
