@@ -27,6 +27,7 @@ type CreatedSop = {
 }
 
 const MAX_UPLOAD_BYTES = 20 * 1024 * 1024
+const DEFAULT_LANGUAGE_CODES = SUPPORTED_LANGUAGES.map((language) => language.code)
 
 function getErrorMessage(error: unknown) {
   if (error instanceof Error) return error.message
@@ -35,7 +36,7 @@ function getErrorMessage(error: unknown) {
 
 export function NewSOPModal({ open, onOpenChange, onCreated }: NewSOPModalProps) {
   const [step, setStep] = useState<Step>('upload')
-  const [selectedLanguages, setSelectedLanguages] = useState<string[]>(['ko', 'vi'])
+  const [selectedLanguages, setSelectedLanguages] = useState<string[]>(DEFAULT_LANGUAGE_CODES)
   const [file, setFile] = useState<File | null>(null)
   const [createdSop, setCreatedSop] = useState<CreatedSop | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -95,12 +96,28 @@ export function NewSOPModal({ open, onOpenChange, onCreated }: NewSOPModalProps)
     }
   }
 
-  const handleClose = () => {
-    if (step === 'processing') return
+  const resetForm = () => {
     setStep('upload')
+    setSelectedLanguages(DEFAULT_LANGUAGE_CODES)
     setFile(null)
     setCreatedSop(null)
     setErrorMessage(null)
+  }
+
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (nextOpen) {
+      onOpenChange(true)
+      return
+    }
+
+    if (step === 'processing') return
+    resetForm()
+    onOpenChange(false)
+  }
+
+  const handleClose = () => {
+    if (step === 'processing') return
+    resetForm()
     onOpenChange(false)
   }
 
@@ -109,7 +126,7 @@ export function NewSOPModal({ open, onOpenChange, onCreated }: NewSOPModalProps)
   }
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="text-[#333d4b]">

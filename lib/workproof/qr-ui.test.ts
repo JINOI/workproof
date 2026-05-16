@@ -12,7 +12,7 @@ test('dashboard and SOP pages move the company QR trigger into the page header',
 
     assert.match(source, /import \{ CompanyQrDialogButton \} from '@\/components\/dashboard\/company-qr'/)
     assert.doesNotMatch(source, /CompanyQrPanel/)
-    assert.match(source, /<DashboardHeader[\s\S]*headerActions=\{<CompanyQrDialogButton \/>\}/)
+    assert.match(source, /<DashboardLayout[\s\S]*headerActions=\{<CompanyQrDialogButton \/>\}/)
   }
 })
 
