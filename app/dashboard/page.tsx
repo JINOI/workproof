@@ -9,6 +9,7 @@ import { FrequentSopTemplates, type FrequentSopTemplate } from '@/components/das
 import { NewSOPModal } from '@/components/dashboard/new-sop-modal'
 import { type DashboardSop, SOPList } from '@/components/dashboard/sop-list'
 import { StatsCards } from '@/components/dashboard/stats-cards'
+import { getClientAuthenticatedUser } from '@/lib/auth/client-session'
 import { createClient } from '@/lib/supabase/client'
 import { formatDashboardTitle } from '@/lib/workproof/dashboard'
 
@@ -69,9 +70,7 @@ export default function DashboardPage() {
 
     async function loadDashboard() {
       const supabase = createClient()
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+      const user = await getClientAuthenticatedUser(supabase)
 
       if (!isMounted) {
         return

@@ -9,6 +9,7 @@ import { type WorkerDetail, WorkerDetailModal } from '@/components/dashboard/wor
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { getClientAuthenticatedUser } from '@/lib/auth/client-session'
 import { createClient } from '@/lib/supabase/client'
 import {
   buildWorkerSopRows,
@@ -136,9 +137,7 @@ export default function WorkersPage() {
 
     async function loadWorkers() {
       const supabase = createClient()
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+      const user = await getClientAuthenticatedUser(supabase)
 
       if (!isMounted) {
         return
