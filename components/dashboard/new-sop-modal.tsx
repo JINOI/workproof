@@ -1,18 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import { X, Upload, Loader2, QrCode, Share2, Check } from 'lucide-react'
+import { Check, Loader2, QrCode, Share2, Upload } from 'lucide-react'
+
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Checkbox } from '@/components/ui/checkbox'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
 
 interface NewSOPModalProps {
   open: boolean
@@ -33,8 +28,8 @@ export function NewSOPModal({ open, onOpenChange }: NewSOPModalProps) {
   const [selectedLanguages, setSelectedLanguages] = useState<string[]>(['ko', 'vi'])
   const [file, setFile] = useState<File | null>(null)
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0]
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = event.target.files?.[0]
     if (selectedFile) {
       setFile(selectedFile)
     }
@@ -43,7 +38,6 @@ export function NewSOPModal({ open, onOpenChange }: NewSOPModalProps) {
   const handleUpload = () => {
     if (!file) return
     setStep('processing')
-    // Simulate AI processing
     setTimeout(() => {
       setStep('complete')
     }, 2000)
@@ -56,11 +50,7 @@ export function NewSOPModal({ open, onOpenChange }: NewSOPModalProps) {
   }
 
   const toggleLanguage = (langId: string) => {
-    setSelectedLanguages(prev => 
-      prev.includes(langId) 
-        ? prev.filter(id => id !== langId)
-        : [...prev, langId]
-    )
+    setSelectedLanguages((prev) => (prev.includes(langId) ? prev.filter((id) => id !== langId) : [...prev, langId]))
   }
 
   return (
@@ -69,36 +59,32 @@ export function NewSOPModal({ open, onOpenChange }: NewSOPModalProps) {
         <DialogHeader>
           <DialogTitle className="text-[#333d4b]">
             {step === 'upload' && 'SOP 문서 업로드'}
-            {step === 'processing' && 'AI 처리 중...'}
+            {step === 'processing' && 'AI 처리 중'}
             {step === 'complete' && 'SOP 생성 완료'}
           </DialogTitle>
           <DialogDescription className="text-[#6b7684]">
-            {step === 'upload' && 'PDF 또는 문서 파일을 업로드하세요'}
-            {step === 'processing' && 'AI가 SOP를 분석하고 퀴즈를 생성하고 있습니다'}
-            {step === 'complete' && 'QR 코드를 근로자에게 공유하세요'}
+            {step === 'upload' && 'PDF 또는 문서를 업로드해 작업자 교육 콘텐츠를 생성합니다.'}
+            {step === 'processing' && '문서를 분석하고 교육 카드와 퀴즈를 준비하고 있습니다.'}
+            {step === 'complete' && 'QR 링크로 작업자 교육을 배포할 수 있습니다.'}
           </DialogDescription>
         </DialogHeader>
 
         {step === 'upload' && (
           <div className="space-y-6 py-4">
             <div className="space-y-2">
-              <Label htmlFor="sop-file" className="text-[#333d4b]">파일 선택</Label>
-              <div className="border-2 border-dashed border-[#e5e8eb] rounded-lg p-8 text-center hover:border-[#3182f6] transition-colors">
-                <Input
-                  id="sop-file"
-                  type="file"
-                  accept=".pdf,.doc,.docx"
-                  onChange={handleFileChange}
-                  className="hidden"
-                />
+              <Label htmlFor="sop-file" className="text-[#333d4b]">
+                문서 파일
+              </Label>
+              <div className="rounded-lg border-2 border-dashed border-[#e5e8eb] p-8 text-center transition-colors hover:border-[#3182f6]">
+                <Input id="sop-file" type="file" accept=".pdf,.doc,.docx" onChange={handleFileChange} className="hidden" />
                 <label htmlFor="sop-file" className="cursor-pointer">
-                  <Upload className="h-10 w-10 mx-auto text-[#8b95a1] mb-3" />
+                  <Upload className="mx-auto mb-3 h-10 w-10 text-[#8b95a1]" />
                   {file ? (
-                    <p className="text-[#3182f6] font-medium">{file.name}</p>
+                    <p className="font-medium text-[#3182f6]">{file.name}</p>
                   ) : (
                     <>
-                      <p className="text-[#6b7684] mb-1">파일을 드래그하거나 클릭하여 선택</p>
-                      <p className="text-xs text-[#8b95a1]">PDF, DOC, DOCX (최대 10MB)</p>
+                      <p className="mb-1 text-[#6b7684]">업로드할 SOP 문서를 선택하세요.</p>
+                      <p className="text-xs text-[#8b95a1]">PDF, DOC, DOCX 최대 10MB</p>
                     </>
                   )}
                 </label>
@@ -106,17 +92,11 @@ export function NewSOPModal({ open, onOpenChange }: NewSOPModalProps) {
             </div>
 
             <div className="space-y-3">
-              <Label className="text-[#333d4b]">번역 언어 선택</Label>
+              <Label className="text-[#333d4b]">교육 언어</Label>
               <div className="flex flex-wrap gap-3">
                 {languages.map((lang) => (
-                  <label
-                    key={lang.id}
-                    className="flex items-center gap-2 cursor-pointer"
-                  >
-                    <Checkbox
-                      checked={selectedLanguages.includes(lang.id)}
-                      onCheckedChange={() => toggleLanguage(lang.id)}
-                    />
+                  <label key={lang.id} className="flex cursor-pointer items-center gap-2">
+                    <Checkbox checked={selectedLanguages.includes(lang.id)} onCheckedChange={() => toggleLanguage(lang.id)} />
                     <span className="text-sm text-[#333d4b]">{lang.label}</span>
                   </label>
                 ))}
@@ -126,55 +106,49 @@ export function NewSOPModal({ open, onOpenChange }: NewSOPModalProps) {
             <Button
               onClick={handleUpload}
               disabled={!file || selectedLanguages.length === 0}
-              className="w-full bg-[#3182f6] hover:bg-[#1b64da] text-white"
+              className="w-full bg-[#3182f6] text-white hover:bg-[#1b64da]"
             >
-              업로드 및 생성
+              업로드하고 생성
             </Button>
           </div>
         )}
 
         {step === 'processing' && (
-          <div className="py-12 flex flex-col items-center">
-            <Loader2 className="h-12 w-12 text-[#3182f6] animate-spin mb-4" />
-            <p className="text-[#6b7684] text-center">
-              SOP 요약 및 퀴즈 생성 중...<br />
-              잠시만 기다려주세요
+          <div className="flex flex-col items-center py-12">
+            <Loader2 className="mb-4 h-12 w-12 animate-spin text-[#3182f6]" />
+            <p className="text-center text-[#6b7684]">
+              SOP 문서를 분석하는 중입니다.
+              <br />
+              잠시만 기다려 주세요.
             </p>
           </div>
         )}
 
         {step === 'complete' && (
-          <div className="py-6 space-y-6">
+          <div className="space-y-6 py-6">
             <div className="flex justify-center">
-              <div className="w-48 h-48 bg-[#f2f4f6] rounded-lg flex items-center justify-center">
+              <div className="flex h-48 w-48 items-center justify-center rounded-lg bg-[#f2f4f6]">
                 <QrCode className="h-32 w-32 text-[#333d4b]" />
               </div>
             </div>
 
-            <div className="text-center space-y-2">
+            <div className="space-y-2 text-center">
               <div className="flex items-center justify-center gap-2 text-[#00d082]">
                 <Check className="h-5 w-5" />
                 <span className="font-medium">생성 완료</span>
               </div>
               <p className="text-sm text-[#6b7684]">
-                10개의 퀴즈가 생성되었습니다<br />
-                선택한 언어: {selectedLanguages.map(id => 
-                  languages.find(l => l.id === id)?.label
-                ).join(', ')}
+                선택한 언어: {selectedLanguages.map((id) => languages.find((lang) => lang.id === id)?.label).join(', ')}
               </p>
             </div>
 
             <div className="flex gap-3">
-              <Button
-                variant="outline"
-                className="flex-1 border-[#e5e8eb]"
-                onClick={handleClose}
-              >
+              <Button variant="outline" className="flex-1 border-[#e5e8eb]" onClick={handleClose}>
                 닫기
               </Button>
-              <Button className="flex-1 bg-[#3182f6] hover:bg-[#1b64da] text-white">
-                <Share2 className="h-4 w-4 mr-2" />
-                QR 공유하기
+              <Button className="flex-1 bg-[#3182f6] text-white hover:bg-[#1b64da]">
+                <Share2 className="mr-2 h-4 w-4" />
+                QR 공유
               </Button>
             </div>
           </div>

@@ -1,14 +1,15 @@
 import type { Metadata } from 'next'
-import { Geist, Geist_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
+import { Geist, Geist_Mono } from 'next/font/google'
+
 import './globals.css'
 
-const _geist = Geist({ subsets: ["latin"] });
-const _geistMono = Geist_Mono({ subsets: ["latin"] });
+const _geist = Geist({ subsets: ['latin'] })
+const _geistMono = Geist_Mono({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'WorkProof - 외국인 근로자 안전 교육 증빙 솔루션',
-  description: 'SOP를 AI로 요약 및 다국어화하여 외국인 근로자의 교육 이해도를 퀴즈로 검증하고, 법적/운영적 교육 증빙 리포트를 생성하는 안전 온보딩 도구',
+  title: 'WorkProof - SOP 교육 이수 증빙',
+  description: 'SOP 교육을 만들고 근로자 이수 기록을 관리하는 WorkProof 관리자 앱입니다.',
   generator: 'v0.app',
   icons: {
     icon: [
@@ -36,7 +37,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko" className="bg-background">
-      <body className="font-sans antialiased min-h-screen">
+      <body className="min-h-screen font-sans antialiased">
         {children}
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>

@@ -1,4 +1,5 @@
-import { FileText, Users, CheckCircle, Clock } from 'lucide-react'
+import { CheckCircle, Clock, FileText, Users } from 'lucide-react'
+
 import { Card, CardContent } from '@/components/ui/card'
 
 interface StatsCardsProps {
@@ -12,15 +13,15 @@ export function StatsCards({ activeSOPs, totalWorkers, completionRate, pendingWo
   const stats = [
     {
       icon: FileText,
-      label: '활성 SOP',
+      label: '등록된 SOP',
       value: activeSOPs,
-      suffix: '',
+      suffix: '개',
       iconBg: 'bg-[#e8f3ff]',
       iconColor: 'text-[#3182f6]',
     },
     {
       icon: Users,
-      label: '전체 근로자',
+      label: '전체 작업자',
       value: totalWorkers,
       suffix: '명',
       iconBg: 'bg-[#e6f9f1]',
@@ -28,7 +29,7 @@ export function StatsCards({ activeSOPs, totalWorkers, completionRate, pendingWo
     },
     {
       icon: CheckCircle,
-      label: '완료 이수율',
+      label: '평균 이수율',
       value: completionRate,
       suffix: '%',
       iconBg: 'bg-[#fff4d6]',
@@ -36,7 +37,7 @@ export function StatsCards({ activeSOPs, totalWorkers, completionRate, pendingWo
     },
     {
       icon: Clock,
-      label: '교육 대기',
+      label: '미이수 작업자',
       value: pendingWorkers,
       suffix: '명',
       iconBg: 'bg-[#f2f4f6]',
@@ -45,19 +46,19 @@ export function StatsCards({ activeSOPs, totalWorkers, completionRate, pendingWo
   ]
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
       {stats.map((stat) => (
         <Card key={stat.label} className="border border-border">
           <CardContent className="p-5">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-sm text-[#6b7684] mb-1">{stat.label}</p>
+                <p className="mb-1 text-sm text-[#6b7684]">{stat.label}</p>
                 <p className="text-3xl font-bold text-[#333d4b]">
                   {stat.value}
                   <span className="text-lg font-normal text-[#8b95a1]">{stat.suffix}</span>
                 </p>
               </div>
-              <div className={`w-10 h-10 rounded-lg ${stat.iconBg} flex items-center justify-center`}>
+              <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${stat.iconBg}`}>
                 <stat.icon className={`h-5 w-5 ${stat.iconColor}`} />
               </div>
             </div>
