@@ -48,6 +48,7 @@ export type Database = {
           source_file_path: string | null
           source_file_name: string | null
           source_file_mime: string | null
+          source_template_key: string | null
           company_public_token: string
           ai_summary: Json
           education_cards: Json
@@ -65,6 +66,7 @@ export type Database = {
           source_file_path?: string | null
           source_file_name?: string | null
           source_file_mime?: string | null
+          source_template_key?: string | null
           company_public_token: string
           ai_summary?: Json
           education_cards?: Json
@@ -80,6 +82,7 @@ export type Database = {
           source_file_path?: string | null
           source_file_name?: string | null
           source_file_mime?: string | null
+          source_template_key?: string | null
           company_public_token?: string
           ai_summary?: Json
           education_cards?: Json
@@ -140,6 +143,98 @@ export type Database = {
             columns: ['sop_id']
             isOneToOne: false
             referencedRelation: 'sops'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      frequent_sop_templates: {
+        Row: {
+          id: string
+          template_key: string
+          title: string
+          description: string | null
+          source_sop_id: string | null
+          ai_summary: Json
+          education_cards: Json
+          languages: string[]
+          display_order: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          template_key: string
+          title: string
+          description?: string | null
+          source_sop_id?: string | null
+          ai_summary?: Json
+          education_cards?: Json
+          languages?: string[]
+          display_order: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          template_key?: string
+          title?: string
+          description?: string | null
+          source_sop_id?: string | null
+          ai_summary?: Json
+          education_cards?: Json
+          languages?: string[]
+          display_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'frequent_sop_templates_source_sop_id_fkey'
+            columns: ['source_sop_id']
+            isOneToOne: false
+            referencedRelation: 'sops'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      frequent_sop_template_questions: {
+        Row: {
+          id: string
+          template_id: string
+          language: string
+          position: number
+          type: 'ox' | 'multiple'
+          prompt: string
+          options: Json | null
+          correct_answer: Json
+          explanation: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          template_id: string
+          language?: string
+          position: number
+          type: 'ox' | 'multiple'
+          prompt: string
+          options?: Json | null
+          correct_answer: Json
+          explanation?: string | null
+          created_at?: string
+        }
+        Update: {
+          language?: string
+          position?: number
+          type?: 'ox' | 'multiple'
+          prompt?: string
+          options?: Json | null
+          correct_answer?: Json
+          explanation?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'frequent_sop_template_questions_template_id_fkey'
+            columns: ['template_id']
+            isOneToOne: false
+            referencedRelation: 'frequent_sop_templates'
             referencedColumns: ['id']
           },
         ]

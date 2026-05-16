@@ -8,6 +8,8 @@
   --brand-green: #4cb050;
   --brand-blue-light: #dceaf5;
   --brand-green-light: #e6f4e7;
+  --brand-blue-glow: rgba(30, 90, 158, 0.2);
+  --brand-green-glow: rgba(76, 176, 80, 0.1);
   --background: #f9fafb;
   --foreground: #333d4b;
   --card: #ffffff;
@@ -163,7 +165,11 @@
 }
 
 .landing-page-gradient {
-  background: linear-gradient(135deg, #eef4ff 0%, #f8fbff 45%, #f3fbf7 100%);
+  background-color: #f8fbff;
+  background-image:
+    radial-gradient(ellipse 90% 75% at -8% -12%, var(--brand-blue-glow) 0%, rgba(30, 90, 158, 0.06) 42%, transparent 68%),
+    radial-gradient(ellipse 55% 45% at 0% 45%, var(--brand-green-glow) 0%, transparent 58%),
+    linear-gradient(135deg, #eef4ff 0%, #f8fbff 45%, #f3fbf7 100%);
 }
 
 .landing-page-orb {

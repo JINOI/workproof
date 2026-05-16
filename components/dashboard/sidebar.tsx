@@ -6,6 +6,7 @@ import { useLayoutEffect, useRef, useState } from 'react'
 import { FileText, LayoutDashboard, LogOut, Settings, User, Users } from 'lucide-react'
 
 import { SafeBridgeLogo } from '@/components/brand/safebridge-logo'
+import { ProfileDialog } from '@/components/dashboard/profile-dialog'
 
 import { useDashboardSidebar } from '@/components/dashboard/sidebar-context'
 import {
@@ -23,12 +24,21 @@ const sidebarItems = [
   { icon: Users, label: '근로자', href: '/workers', activePrefix: '/workers' },
 ] as const
 
+function isSidebarItemActive(item: (typeof sidebarItems)[number], pathname: string) {
+  if ('activePath' in item && item.activePath === pathname) {
+    return true
+  }
+
+  return 'activePrefix' in item && pathname.startsWith(item.activePrefix)
+}
+
 export function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
   const { isOpen } = useDashboardSidebar()
   const navListRef = useRef<HTMLUListElement>(null)
   const [indicator, setIndicator] = useState({ top: 0, height: 0, opacity: 0 })
+  const [profileOpen, setProfileOpen] = useState(false)
 
   const handleSignOut = async () => {
     const supabase = createClient()
@@ -84,8 +94,7 @@ export function Sidebar() {
             />
 
             {sidebarItems.map((item) => {
-              const isActive =
-                item.activePath === pathname || Boolean(item.activePrefix && pathname.startsWith(item.activePrefix))
+              const isActive = isSidebarItemActive(item, pathname)
 
               return (
                 <li key={item.label}>
@@ -116,7 +125,12 @@ export function Sidebar() {
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent side="right" align="start" className="w-40">
-                  <DropdownMenuItem>
+                  <DropdownMenuItem
+                    onSelect={(event) => {
+                      event.preventDefault()
+                      setProfileOpen(true)
+                    }}
+                  >
                     <User className="h-4 w-4" />
                     프로필
                   </DropdownMenuItem>
@@ -141,6 +155,8 @@ export function Sidebar() {
           </button>
         </div>
       </div>
+
+      <ProfileDialog open={profileOpen} onOpenChange={setProfileOpen} />
     </aside>
   )
 }
