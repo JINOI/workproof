@@ -13,7 +13,7 @@ import {
 
 const sidebarItems = [
   { icon: LayoutDashboard, label: '대시보드', href: '/dashboard', activePath: '/dashboard' },
-  { icon: FileText, label: 'SOP 관리', href: '/dashboard', activePrefix: '/sop' },
+  { icon: FileText, label: 'SOP 관리', href: '/sop', activePrefix: '/sop' },
   { icon: Users, label: '근로자', href: '/dashboard' },
 ]
 
