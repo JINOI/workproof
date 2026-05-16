@@ -56,6 +56,7 @@ export default function DashboardPage() {
   const [loadError, setLoadError] = useState<string | null>(null)
   const [searchValue, setSearchValue] = useState('')
   const [showNewSOPModal, setShowNewSOPModal] = useState(false)
+  const [refreshToken, setRefreshToken] = useState(0)
 
   useEffect(() => {
     let isMounted = true
@@ -111,7 +112,7 @@ export default function DashboardPage() {
     return () => {
       isMounted = false
     }
-  }, [router])
+  }, [router, refreshToken])
 
   const filteredSOPs = useMemo(
     () => sops.filter((sop) => sop.title.toLowerCase().includes(searchValue.toLowerCase())),
@@ -163,7 +164,7 @@ export default function DashboardPage() {
         </main>
       </div>
 
-      <NewSOPModal open={showNewSOPModal} onOpenChange={setShowNewSOPModal} />
+      <NewSOPModal open={showNewSOPModal} onOpenChange={setShowNewSOPModal} onCreated={() => setRefreshToken((value) => value + 1)} />
     </div>
   )
 }

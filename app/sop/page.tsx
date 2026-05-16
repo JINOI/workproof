@@ -47,6 +47,7 @@ export default function SOPManagementPage() {
   const [loadError, setLoadError] = useState<string | null>(null)
   const [searchValue, setSearchValue] = useState('')
   const [showNewSOPModal, setShowNewSOPModal] = useState(false)
+  const [refreshToken, setRefreshToken] = useState(0)
 
   useEffect(() => {
     let isMounted = true
@@ -102,7 +103,7 @@ export default function SOPManagementPage() {
     return () => {
       isMounted = false
     }
-  }, [router])
+  }, [router, refreshToken])
 
   const filteredSOPs = useMemo(() => {
     const normalizedSearchValue = searchValue.trim().toLowerCase()
@@ -143,7 +144,7 @@ export default function SOPManagementPage() {
         </main>
       </div>
 
-      <NewSOPModal open={showNewSOPModal} onOpenChange={setShowNewSOPModal} />
+      <NewSOPModal open={showNewSOPModal} onOpenChange={setShowNewSOPModal} onCreated={() => setRefreshToken((value) => value + 1)} />
     </div>
   )
 }

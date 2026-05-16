@@ -95,6 +95,7 @@ export type Database = {
         Row: {
           id: string
           sop_id: string
+          language: string
           position: number
           type: 'ox' | 'multiple'
           prompt: string
@@ -106,6 +107,7 @@ export type Database = {
         Insert: {
           id?: string
           sop_id: string
+          language?: string
           position: number
           type: 'ox' | 'multiple'
           prompt: string
@@ -115,6 +117,7 @@ export type Database = {
           created_at?: string
         }
         Update: {
+          language?: string
           position?: number
           type?: 'ox' | 'multiple'
           prompt?: string

@@ -16,8 +16,10 @@ const submitEducationSchema = z.object({
       questionId: z.string().uuid(),
       selectedAnswer: z.unknown().transform((value) => value as Json),
       isCorrect: z.boolean(),
+      attempt: z.number().int().positive().optional(),
     }),
   ),
+  passed: z.boolean().optional(),
 })
 
 export async function POST(request: Request) {
