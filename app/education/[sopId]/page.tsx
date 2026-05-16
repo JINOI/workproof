@@ -1,398 +1,488 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
-import { useParams, useRouter } from 'next/navigation'
-import { Shield, HardHat, AlertTriangle, Ban, ShieldCheck, ArrowLeft, Heart, ChevronRight, Check, X } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useParams } from 'next/navigation'
+import { AlertTriangle, ArrowLeft, Ban, Check, ChevronRight, HardHat, Heart, Shield, ShieldCheck, X } from 'lucide-react'
+
 import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card, CardContent } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
-import { mockEducationCards, mockQuizQuestions, type QuizQuestion, type EducationCard } from '@/lib/mock-data'
+import type { Json } from '@/lib/supabase/database.types'
 import { cn } from '@/lib/utils'
 
 type Step = 'info' | 'education' | 'quiz' | 'result' | 'failed'
 
-interface AnswerState {
-  questionId: number
-  selectedAnswer: number | boolean | null
-  isCorrect: boolean | null
+type EducationCardPayload = {
+  title: string
+  content: string
+  icon: 'warning' | 'safety' | 'prohibited' | 'equipment'
+}
+
+type QuizQuestionPayload = {
+  id: string
+  position: number
+  type: 'ox' | 'multiple'
+  prompt: string
+  options: Json | null
+  correct_answer: Json
+  explanation: string | null
+}
+
+type EducationPayload = {
+  id: string
+  title: string
+  description: string | null
+  education_cards: Json
+  languages: string[]
+  quiz_questions: QuizQuestionPayload[]
+}
+
+type AnswerState = {
+  questionId: string
+  selectedAnswer: Json
+  isCorrect: boolean
+}
+
+function isEducationCard(value: Json): value is EducationCardPayload {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+
+  return (
+    typeof value.title === 'string' &&
+    typeof value.content === 'string' &&
+    (value.icon === 'warning' || value.icon === 'safety' || value.icon === 'prohibited' || value.icon === 'equipment')
+  )
+}
+
+function parseEducationCards(value: Json): EducationCardPayload[] {
+  if (!Array.isArray(value)) return []
+  return value.filter(isEducationCard)
+}
+
+function parseOptions(value: Json | null): string[] {
+  if (!Array.isArray(value)) return []
+  return value.filter((option): option is string => typeof option === 'string')
+}
+
+function shuffleArray<T>(array: T[]): T[] {
+  const shuffled = [...array]
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    const nextIndex = Math.floor(Math.random() * (index + 1))
+    ;[shuffled[index], shuffled[nextIndex]] = [shuffled[nextIndex], shuffled[index]]
+  }
+  return shuffled
+}
+
+function getCardIcon(iconType: EducationCardPayload['icon']) {
+  switch (iconType) {
+    case 'safety':
+      return ShieldCheck
+    case 'warning':
+      return AlertTriangle
+    case 'prohibited':
+      return Ban
+    case 'equipment':
+      return HardHat
+    default:
+      return Shield
+  }
+}
+
+function formatTime(seconds: number) {
+  const minutes = Math.floor(seconds / 60)
+  const restSeconds = seconds % 60
+  return `${minutes}분 ${restSeconds}초`
 }
 
 export default function EducationPage() {
-  const params = useParams()
-  const router = useRouter()
-  
-  // User info
+  const params = useParams<{ sopId: string }>()
+  const [education, setEducation] = useState<EducationPayload | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [name, setName] = useState('')
   const [birthDate, setBirthDate] = useState('')
-  
-  // Flow control
   const [step, setStep] = useState<Step>('info')
   const [currentCardIndex, setCurrentCardIndex] = useState(0)
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
   const [canProceed, setCanProceed] = useState(false)
   const [countdown, setCountdown] = useState(5)
-  
-  // Quiz state
   const [answers, setAnswers] = useState<AnswerState[]>([])
   const [attempts, setAttempts] = useState(1)
-  const [startTime, setStartTime] = useState<number>(0)
+  const [startTime, setStartTime] = useState(0)
   const [elapsedTime, setElapsedTime] = useState(0)
-  const [selectedAnswer, setSelectedAnswer] = useState<number | boolean | null>(null)
+  const [selectedAnswer, setSelectedAnswer] = useState<Json | null>(null)
   const [showFeedback, setShowFeedback] = useState(false)
   const [lives, setLives] = useState(3)
-  
-  // Shuffle questions for retry
-  const [shuffledQuestions, setShuffledQuestions] = useState<QuizQuestion[]>([])
+  const [shuffledQuestions, setShuffledQuestions] = useState<QuizQuestionPayload[]>([])
+  const [submitError, setSubmitError] = useState<string | null>(null)
 
-  const shuffleArray = <T,>(array: T[]): T[] => {
-    const shuffled = [...array]
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+  useEffect(() => {
+    let isMounted = true
+
+    async function loadEducation() {
+      try {
+        const response = await fetch(`/api/education/${params.sopId}`, {
+          cache: 'no-store',
+        })
+
+        if (!response.ok) {
+          throw new Error('교육 정보를 불러오지 못했습니다.')
+        }
+
+        const payload = (await response.json()) as { education: EducationPayload }
+
+        if (isMounted) {
+          setEducation(payload.education)
+          setLoadError(null)
+        }
+      } catch (error) {
+        if (isMounted) {
+          setLoadError(error instanceof Error ? error.message : '교육 정보를 불러오지 못했습니다.')
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false)
+        }
+      }
     }
-    return shuffled
-  }
+
+    loadEducation()
+
+    return () => {
+      isMounted = false
+    }
+  }, [params.sopId])
+
+  const educationCards = useMemo(() => parseEducationCards(education?.education_cards ?? []), [education])
 
   const initQuiz = useCallback(() => {
-    setShuffledQuestions(shuffleArray(mockQuizQuestions))
+    setShuffledQuestions(shuffleArray(education?.quiz_questions ?? []))
     setCurrentQuestionIndex(0)
     setAnswers([])
     setSelectedAnswer(null)
     setShowFeedback(false)
     setStartTime(Date.now())
-  }, [])
+    setSubmitError(null)
+  }, [education])
 
-  // 5 second delay for education cards
   useEffect(() => {
-    if (step === 'education') {
-      setCanProceed(false)
-      setCountdown(5)
-      const interval = setInterval(() => {
-        setCountdown(prev => {
-          if (prev <= 1) {
-            setCanProceed(true)
-            clearInterval(interval)
-            return 0
-          }
-          return prev - 1
-        })
-      }, 1000)
-      return () => clearInterval(interval)
-    }
+    if (step !== 'education') return
+
+    setCanProceed(false)
+    setCountdown(5)
+    const interval = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          setCanProceed(true)
+          clearInterval(interval)
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+
+    return () => clearInterval(interval)
   }, [step, currentCardIndex])
 
-  // Track elapsed time during quiz
   useEffect(() => {
-    if (step === 'quiz' && startTime > 0) {
-      const interval = setInterval(() => {
-        setElapsedTime(Math.floor((Date.now() - startTime) / 1000))
-      }, 1000)
-      return () => clearInterval(interval)
-    }
+    if (step !== 'quiz' || startTime <= 0) return
+
+    const interval = setInterval(() => {
+      setElapsedTime(Math.floor((Date.now() - startTime) / 1000))
+    }, 1000)
+
+    return () => clearInterval(interval)
   }, [step, startTime])
 
   const handleStartEducation = () => {
-    if (name && birthDate) {
-      setStep('education')
+    if (!name || !birthDate || !education) return
+
+    if (educationCards.length === 0) {
+      initQuiz()
+      setStep('quiz')
+      return
     }
+
+    setStep('education')
   }
 
   const handleNextCard = () => {
-    if (currentCardIndex < mockEducationCards.length - 1) {
-      setCurrentCardIndex(prev => prev + 1)
-    } else {
-      initQuiz()
-      setStep('quiz')
+    if (currentCardIndex < educationCards.length - 1) {
+      setCurrentCardIndex((prev) => prev + 1)
+      return
     }
+
+    initQuiz()
+    setStep('quiz')
   }
 
-  const handleSelectAnswer = (answer: number | boolean) => {
+  const handleSelectAnswer = (answer: Json) => {
     if (showFeedback) return
     setSelectedAnswer(answer)
   }
 
   const handleSubmitAnswer = () => {
     if (selectedAnswer === null) return
-    
+
     const currentQuestion = shuffledQuestions[currentQuestionIndex]
-    const isCorrect = selectedAnswer === currentQuestion.correctAnswer
-    
+    const isCorrect = selectedAnswer === currentQuestion.correct_answer
+
     setShowFeedback(true)
-    
-    const newAnswer: AnswerState = {
-      questionId: currentQuestion.id,
-      selectedAnswer,
-      isCorrect
-    }
-    setAnswers(prev => [...prev, newAnswer])
+    setAnswers((prev) => [
+      ...prev,
+      {
+        questionId: currentQuestion.id,
+        selectedAnswer,
+        isCorrect,
+      },
+    ])
 
     if (!isCorrect) {
-      setLives(prev => prev - 1)
+      setLives((prev) => prev - 1)
     }
   }
 
-  const handleNextQuestion = () => {
+  const submitResult = async (nextAnswers: AnswerState[]) => {
+    if (!education) return
+
+    try {
+      const finalElapsedTime = Math.floor((Date.now() - startTime) / 1000)
+      setElapsedTime(finalElapsedTime)
+
+      const response = await fetch('/api/education/submit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sopId: education.id,
+          workerName: name,
+          workerBirthDate: birthDate,
+          language: education.languages[0] ?? 'ko',
+          attempts,
+          elapsedSeconds: finalElapsedTime,
+          answers: nextAnswers,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('이수 결과를 저장하지 못했습니다.')
+      }
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : '이수 결과를 저장하지 못했습니다.')
+    }
+  }
+
+  const handleNextQuestion = async () => {
     const currentQuestion = shuffledQuestions[currentQuestionIndex]
-    const isCorrect = selectedAnswer === currentQuestion.correctAnswer
+    const isCorrect = selectedAnswer === currentQuestion.correct_answer
+    const nextAnswers = [
+      ...answers,
+      {
+        questionId: currentQuestion.id,
+        selectedAnswer: selectedAnswer as Json,
+        isCorrect,
+      },
+    ]
 
     if (!isCorrect && lives <= 1) {
-      // Failed - no more lives
+      await submitResult(nextAnswers)
       setStep('failed')
       return
     }
 
     if (currentQuestionIndex < shuffledQuestions.length - 1) {
-      setCurrentQuestionIndex(prev => prev + 1)
+      setCurrentQuestionIndex((prev) => prev + 1)
       setSelectedAnswer(null)
       setShowFeedback(false)
-    } else {
-      // All questions answered - check if passed
-      const wrongAnswers = answers.filter(a => !a.isCorrect).length + (!isCorrect ? 1 : 0)
-      if (wrongAnswers > 0) {
-        setStep('failed')
-      } else {
-        setElapsedTime(Math.floor((Date.now() - startTime) / 1000))
-        setStep('result')
-      }
+      return
     }
+
+    const wrongAnswers = nextAnswers.filter((answer) => !answer.isCorrect).length
+    await submitResult(nextAnswers)
+    setStep(wrongAnswers > 0 ? 'failed' : 'result')
   }
 
   const handleRetry = () => {
-    setAttempts(prev => prev + 1)
+    setAttempts((prev) => prev + 1)
     setLives(3)
     initQuiz()
     setStep('quiz')
   }
 
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60)
-    const secs = seconds % 60
-    return `${mins}분 ${secs}초`
-  }
-
-  const getCardIcon = (iconType: EducationCard['icon']) => {
-    switch (iconType) {
-      case 'safety': return ShieldCheck
-      case 'warning': return AlertTriangle
-      case 'prohibited': return Ban
-      case 'equipment': return HardHat
-      default: return Shield
-    }
-  }
-
-  const currentCard = mockEducationCards[currentCardIndex]
+  const currentCard = educationCards[currentCardIndex]
   const currentQuestion = shuffledQuestions[currentQuestionIndex]
-  const progress = step === 'education' 
-    ? ((currentCardIndex + 1) / mockEducationCards.length) * 100
-    : ((currentQuestionIndex + 1) / shuffledQuestions.length) * 100
+  const progress =
+    step === 'education'
+      ? ((currentCardIndex + 1) / Math.max(educationCards.length, 1)) * 100
+      : ((currentQuestionIndex + 1) / Math.max(shuffledQuestions.length, 1)) * 100
+
+  if (isLoading) {
+    return <div className="flex min-h-screen items-center justify-center bg-[#f9fafb] text-sm text-[#6b7684]">교육 정보를 불러오는 중입니다...</div>
+  }
+
+  if (loadError || !education) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#f9fafb] p-4">
+        <Card className="w-full max-w-md border-0 shadow-lg">
+          <CardContent className="p-8 text-center">
+            <h1 className="mb-2 text-xl font-bold text-[#333d4b]">교육을 찾을 수 없습니다.</h1>
+            <p className="text-sm text-[#6b7684]">{loadError ?? '유효하지 않은 교육 링크입니다.'}</p>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   return (
-    <div className="min-h-screen bg-[#f9fafb] flex flex-col">
-      {/* Header */}
+    <div className="flex min-h-screen flex-col bg-[#f9fafb]">
       {step !== 'info' && (
-        <header className="bg-white border-b border-[#e5e8eb] px-4 py-3">
-          <div className="max-w-md mx-auto flex items-center justify-between">
-            <button 
-              onClick={() => step === 'education' ? setStep('info') : null}
-              className="text-[#6b7684]"
-            >
+        <header className="border-b border-[#e5e8eb] bg-white px-4 py-3">
+          <div className="mx-auto flex max-w-md items-center justify-between">
+            <button type="button" onClick={() => (step === 'education' ? setStep('info') : null)} className="text-[#6b7684]">
               <ArrowLeft className="h-5 w-5" />
             </button>
-            <div className="flex-1 mx-4">
+            <div className="mx-4 flex-1">
               <Progress value={progress} className="h-2" />
             </div>
             {step === 'quiz' && (
               <div className="flex items-center gap-1">
-                <Heart className={cn("h-5 w-5", lives >= 1 ? "text-[#f04452] fill-[#f04452]" : "text-[#d1d6db]")} />
+                <Heart className={cn('h-5 w-5', lives >= 1 ? 'fill-[#f04452] text-[#f04452]' : 'text-[#d1d6db]')} />
                 <span className="text-sm text-[#333d4b]">{lives}</span>
               </div>
             )}
-            {step === 'education' && (
-              <span className="text-sm text-[#6b7684]">
-                {currentCardIndex + 1}/{mockEducationCards.length}
-              </span>
-            )}
+            {step === 'education' && <span className="text-sm text-[#6b7684]">{currentCardIndex + 1}/{educationCards.length}</span>}
           </div>
         </header>
       )}
 
-      {/* Content */}
-      <main className="flex-1 flex items-center justify-center p-4">
+      <main className="flex flex-1 items-center justify-center p-4">
         <div className="w-full max-w-md">
-          
-          {/* Step: Info Input */}
           {step === 'info' && (
             <Card className="border-0 shadow-lg">
               <CardContent className="p-8">
-                <div className="text-center mb-8">
-                  <div className="w-16 h-16 rounded-full bg-[#e8f3ff] mx-auto flex items-center justify-center mb-4">
+                <div className="mb-8 text-center">
+                  <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[#e8f3ff]">
                     <HardHat className="h-8 w-8 text-[#3182f6]" />
                   </div>
-                  <h1 className="text-xl font-bold text-[#333d4b] mb-2">안전 교육을 시작합니다</h1>
-                  <p className="text-[#6b7684] text-sm">본인 확인을 위해 정보를 입력해주세요</p>
+                  <h1 className="mb-2 text-xl font-bold text-[#333d4b]">{education.title}</h1>
+                  <p className="text-sm text-[#6b7684]">{education.description ?? '교육 이수를 위해 정보를 입력하세요.'}</p>
                 </div>
 
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="name" className="text-[#333d4b]">이름 (Name)</Label>
-                    <Input
-                      id="name"
-                      placeholder="김민준"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      className="h-12 border-[#e5e8eb]"
-                    />
+                    <Label htmlFor="name" className="text-[#333d4b]">
+                      이름
+                    </Label>
+                    <Input id="name" placeholder="이름 입력" value={name} onChange={(event) => setName(event.target.value)} className="h-12 border-[#e5e8eb]" />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="birthdate" className="text-[#333d4b]">생년월일 (Birth)</Label>
+                    <Label htmlFor="birthdate" className="text-[#333d4b]">
+                      생년월일
+                    </Label>
                     <Input
                       id="birthdate"
                       type="date"
                       value={birthDate}
-                      onChange={(e) => setBirthDate(e.target.value)}
+                      onChange={(event) => setBirthDate(event.target.value)}
                       className="h-12 border-[#e5e8eb]"
                     />
                   </div>
-                  <Button
-                    onClick={handleStartEducation}
-                    disabled={!name || !birthDate}
-                    className="w-full h-12 bg-[#3182f6] hover:bg-[#1b64da] text-white mt-4"
-                  >
-                    시작하기
+                  <Button onClick={handleStartEducation} disabled={!name || !birthDate} className="mt-4 h-12 w-full bg-[#3182f6] text-white hover:bg-[#1b64da]">
+                    교육 시작
                   </Button>
                 </div>
               </CardContent>
             </Card>
           )}
 
-          {/* Step: Education Cards */}
           {step === 'education' && currentCard && (
             <div className="space-y-6">
-              <Card className="border-0 shadow-lg overflow-hidden">
-                <div className={cn(
-                  "p-8 text-center",
-                  currentCard.icon === 'prohibited' ? "bg-[#fff0f0]" : "bg-[#e8f3ff]"
-                )}>
+              <Card className="overflow-hidden border-0 shadow-lg">
+                <div className={cn('p-8 text-center', currentCard.icon === 'prohibited' ? 'bg-[#fff0f0]' : 'bg-[#e8f3ff]')}>
                   {(() => {
                     const IconComponent = getCardIcon(currentCard.icon)
                     return (
-                      <div className={cn(
-                        "w-20 h-20 rounded-full mx-auto flex items-center justify-center mb-4",
-                        currentCard.icon === 'prohibited' ? "bg-[#f04452]" : "bg-white"
-                      )}>
-                        <IconComponent className={cn(
-                          "h-10 w-10",
-                          currentCard.icon === 'prohibited' ? "text-white" : "text-[#3182f6]"
-                        )} />
+                      <div className={cn('mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full', currentCard.icon === 'prohibited' ? 'bg-[#f04452]' : 'bg-white')}>
+                        <IconComponent className={cn('h-10 w-10', currentCard.icon === 'prohibited' ? 'text-white' : 'text-[#3182f6]')} />
                       </div>
                     )
                   })()}
-                  <h2 className={cn(
-                    "text-xl font-bold mb-2",
-                    currentCard.icon === 'prohibited' ? "text-[#f04452]" : "text-[#333d4b]"
-                  )}>
-                    {currentCard.title}
-                  </h2>
+                  <h2 className={cn('mb-2 text-xl font-bold', currentCard.icon === 'prohibited' ? 'text-[#f04452]' : 'text-[#333d4b]')}>{currentCard.title}</h2>
                 </div>
                 <CardContent className="p-6">
-                  <p className="text-[#6b7684] leading-relaxed text-center">
-                    {currentCard.content}
-                  </p>
+                  <p className="text-center leading-relaxed text-[#6b7684]">{currentCard.content}</p>
                 </CardContent>
               </Card>
 
-              <Button
-                onClick={handleNextCard}
-                disabled={!canProceed}
-                className="w-full h-12 bg-[#3182f6] hover:bg-[#1b64da] text-white disabled:bg-[#d1d6db]"
-              >
+              <Button onClick={handleNextCard} disabled={!canProceed} className="h-12 w-full bg-[#3182f6] text-white hover:bg-[#1b64da] disabled:bg-[#d1d6db]">
                 {canProceed ? (
                   <>
-                    다음 학습하기
-                    <ChevronRight className="h-4 w-4 ml-1" />
+                    다음으로
+                    <ChevronRight className="ml-1 h-4 w-4" />
                   </>
                 ) : (
-                  `${countdown}초 후 다음으로`
+                  `${countdown}초 후 진행`
                 )}
               </Button>
             </div>
           )}
 
-          {/* Step: Quiz */}
           {step === 'quiz' && currentQuestion && (
             <div className="space-y-6">
-              <div className="text-center mb-2">
-                <span className="text-sm text-[#3182f6] font-medium">O / X 문제</span>
-                <h2 className="text-lg font-bold text-[#333d4b] mt-2 px-4">
-                  {currentQuestion.question}
-                </h2>
+              <div className="mb-2 text-center">
+                <span className="text-sm font-medium text-[#3182f6]">{currentQuestion.type === 'ox' ? 'O / X 문제' : '객관식 문제'}</span>
+                <h2 className="mt-2 px-4 text-lg font-bold text-[#333d4b]">{currentQuestion.prompt}</h2>
               </div>
 
               {currentQuestion.type === 'ox' ? (
                 <div className="grid grid-cols-2 gap-4">
                   {[false, true].map((answer) => {
                     const isSelected = selectedAnswer === answer
-                    const isCorrect = currentQuestion.correctAnswer === answer
-                    
-                    let buttonClass = "h-24 text-2xl font-bold border-2 transition-all "
-                    if (showFeedback) {
-                      if (isCorrect) {
-                        buttonClass += "border-[#00d082] bg-[#e6f9f1] text-[#00d082]"
-                      } else if (isSelected && !isCorrect) {
-                        buttonClass += "border-[#f04452] bg-[#fff0f0] text-[#f04452]"
-                      } else {
-                        buttonClass += "border-[#e5e8eb] text-[#d1d6db]"
-                      }
-                    } else if (isSelected) {
-                      buttonClass += "border-[#3182f6] bg-[#e8f3ff] text-[#3182f6]"
-                    } else {
-                      buttonClass += "border-[#e5e8eb] hover:border-[#3182f6] text-[#333d4b]"
-                    }
+                    const isCorrect = currentQuestion.correct_answer === answer
 
                     return (
                       <button
                         key={answer.toString()}
+                        type="button"
                         onClick={() => handleSelectAnswer(answer)}
                         disabled={showFeedback}
-                        className={cn("rounded-xl flex items-center justify-center", buttonClass)}
+                        className={cn(
+                          'flex h-24 items-center justify-center rounded-xl border-2 text-2xl font-bold transition-all',
+                          showFeedback && isCorrect && 'border-[#00d082] bg-[#e6f9f1] text-[#00d082]',
+                          showFeedback && isSelected && !isCorrect && 'border-[#f04452] bg-[#fff0f0] text-[#f04452]',
+                          showFeedback && !isSelected && !isCorrect && 'border-[#e5e8eb] text-[#d1d6db]',
+                          !showFeedback && isSelected && 'border-[#3182f6] bg-[#e8f3ff] text-[#3182f6]',
+                          !showFeedback && !isSelected && 'border-[#e5e8eb] text-[#333d4b] hover:border-[#3182f6]',
+                        )}
                       >
                         {answer ? 'O' : 'X'}
-                        {showFeedback && isSelected && isCorrect && (
-                          <Check className="h-6 w-6 ml-2" />
-                        )}
+                        {showFeedback && isSelected && isCorrect && <Check className="ml-2 h-6 w-6" />}
                       </button>
                     )
                   })}
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {currentQuestion.options?.map((option, index) => {
+                  {parseOptions(currentQuestion.options).map((option, index) => {
                     const isSelected = selectedAnswer === index
-                    const isCorrect = currentQuestion.correctAnswer === index
-                    
-                    let buttonClass = "w-full p-4 text-left rounded-xl border-2 transition-all "
-                    if (showFeedback) {
-                      if (isCorrect) {
-                        buttonClass += "border-[#00d082] bg-[#e6f9f1] text-[#00d082]"
-                      } else if (isSelected && !isCorrect) {
-                        buttonClass += "border-[#f04452] bg-[#fff0f0] text-[#f04452]"
-                      } else {
-                        buttonClass += "border-[#e5e8eb] text-[#d1d6db]"
-                      }
-                    } else if (isSelected) {
-                      buttonClass += "border-[#3182f6] bg-[#e8f3ff] text-[#3182f6]"
-                    } else {
-                      buttonClass += "border-[#e5e8eb] hover:border-[#3182f6] text-[#333d4b]"
-                    }
+                    const isCorrect = currentQuestion.correct_answer === index
 
                     return (
                       <button
-                        key={index}
+                        key={option}
+                        type="button"
                         onClick={() => handleSelectAnswer(index)}
                         disabled={showFeedback}
-                        className={buttonClass}
+                        className={cn(
+                          'w-full rounded-xl border-2 p-4 text-left transition-all',
+                          showFeedback && isCorrect && 'border-[#00d082] bg-[#e6f9f1] text-[#00d082]',
+                          showFeedback && isSelected && !isCorrect && 'border-[#f04452] bg-[#fff0f0] text-[#f04452]',
+                          showFeedback && !isSelected && !isCorrect && 'border-[#e5e8eb] text-[#d1d6db]',
+                          !showFeedback && isSelected && 'border-[#3182f6] bg-[#e8f3ff] text-[#3182f6]',
+                          !showFeedback && !isSelected && 'border-[#e5e8eb] text-[#333d4b] hover:border-[#3182f6]',
+                        )}
                       >
                         <div className="flex items-center justify-between">
                           <span>{option}</span>
@@ -405,89 +495,61 @@ export default function EducationPage() {
                 </div>
               )}
 
-              {/* Feedback */}
               {showFeedback && (
-                <div className={cn(
-                  "p-4 rounded-xl flex items-center gap-3",
-                  selectedAnswer === currentQuestion.correctAnswer 
-                    ? "bg-[#e6f9f1]" 
-                    : "bg-[#fff0f0]"
-                )}>
-                  {selectedAnswer === currentQuestion.correctAnswer ? (
+                <div className={cn('flex items-center gap-3 rounded-xl p-4', selectedAnswer === currentQuestion.correct_answer ? 'bg-[#e6f9f1]' : 'bg-[#fff0f0]')}>
+                  {selectedAnswer === currentQuestion.correct_answer ? (
                     <>
                       <Check className="h-5 w-5 text-[#00d082]" />
-                      <span className="text-[#00d082] font-medium">정답입니다!</span>
+                      <span className="font-medium text-[#00d082]">정답입니다.</span>
                     </>
                   ) : (
                     <>
                       <X className="h-5 w-5 text-[#f04452]" />
-                      <span className="text-[#f04452] font-medium">오답입니다. {currentQuestion.explanation}</span>
+                      <span className="font-medium text-[#f04452]">오답입니다. {currentQuestion.explanation}</span>
                     </>
                   )}
                 </div>
               )}
 
+              {submitError && <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{submitError}</p>}
+
               {!showFeedback ? (
-                <Button
-                  onClick={handleSubmitAnswer}
-                  disabled={selectedAnswer === null}
-                  className="w-full h-12 bg-[#3182f6] hover:bg-[#1b64da] text-white disabled:bg-[#d1d6db]"
-                >
-                  확인
+                <Button onClick={handleSubmitAnswer} disabled={selectedAnswer === null} className="h-12 w-full bg-[#3182f6] text-white hover:bg-[#1b64da] disabled:bg-[#d1d6db]">
+                  제출
                 </Button>
               ) : (
-                <Button
-                  onClick={handleNextQuestion}
-                  className="w-full h-12 bg-[#3182f6] hover:bg-[#1b64da] text-white"
-                >
+                <Button onClick={handleNextQuestion} className="h-12 w-full bg-[#3182f6] text-white hover:bg-[#1b64da]">
                   계속
                 </Button>
               )}
-
-              <p className="text-xs text-center text-[#8b95a1]">
-                이 응답 내용, 한 문제라도 틀리면 퀴즈처리되어 다시 해야 합니다
-              </p>
             </div>
           )}
 
-          {/* Step: Failed */}
           {step === 'failed' && (
-            <Card className="border-0 shadow-lg text-center">
+            <Card className="border-0 text-center shadow-lg">
               <CardContent className="p-8">
-                <div className="w-20 h-20 rounded-full bg-[#fff0f0] mx-auto flex items-center justify-center mb-6">
+                <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-[#fff0f0]">
                   <X className="h-10 w-10 text-[#f04452]" />
                 </div>
-                <h2 className="text-xl font-bold text-[#333d4b] mb-2">오답이 있습니다</h2>
-                <p className="text-[#6b7684] mb-2">
-                  틀린 문제를 위해 처음부터 다시 풀어주세요.<br />
-                  문제의 복기 단계별시민다시 확인해주세요.
-                </p>
-                <p className="text-sm text-[#8b95a1] mb-6">
-                  현재 시도: <span className="font-medium text-[#333d4b]">{attempts}회</span>
-                </p>
-                <Button
-                  onClick={handleRetry}
-                  className="w-full h-12 bg-[#f04452] hover:bg-[#d63841] text-white"
-                >
-                  다시 풀기
+                <h2 className="mb-2 text-xl font-bold text-[#333d4b]">교육을 통과하지 못했습니다.</h2>
+                <p className="mb-6 text-[#6b7684]">틀린 문항을 다시 확인한 뒤 재시도하세요.</p>
+                <Button onClick={handleRetry} className="h-12 w-full bg-[#f04452] text-white hover:bg-[#d63841]">
+                  다시 시도
                 </Button>
               </CardContent>
             </Card>
           )}
 
-          {/* Step: Success Result */}
           {step === 'result' && (
-            <Card className="border-0 shadow-lg text-center">
+            <Card className="border-0 text-center shadow-lg">
               <CardContent className="p-8">
-                <div className="w-20 h-20 rounded-full bg-[#e6f9f1] mx-auto flex items-center justify-center mb-6">
+                <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-[#e6f9f1]">
                   <Check className="h-10 w-10 text-[#00d082]" />
                 </div>
-                <h2 className="text-xl font-bold text-[#333d4b] mb-2">수고하셨습니다!</h2>
-                <p className="text-[#6b7684] mb-6">
-                  안전 교육을 성공적으로 완료했습니다.
-                </p>
-                
-                <div className="bg-[#f2f4f6] rounded-xl p-4 space-y-3 mb-6">
+                <h2 className="mb-2 text-xl font-bold text-[#333d4b]">교육을 완료했습니다.</h2>
+                <p className="mb-6 text-[#6b7684]">이수 결과가 저장되었습니다.</p>
+
+                <div className="mb-6 space-y-3 rounded-xl bg-[#f2f4f6] p-4">
                   <div className="flex items-center justify-between">
                     <span className="text-[#6b7684]">시도 횟수</span>
                     <span className="font-medium text-[#333d4b]">{attempts}회</span>
@@ -498,18 +560,9 @@ export default function EducationPage() {
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-[#6b7684]">상태</span>
-                    <span className={cn(
-                      "font-medium",
-                      attempts <= 3 ? "text-[#00d082]" : "text-[#b88600]"
-                    )}>
-                      {attempts <= 3 ? '안전' : '경고'}
-                    </span>
+                    <span className={cn('font-medium', attempts <= 3 ? 'text-[#00d082]' : 'text-[#b88600]')}>{attempts <= 3 ? '안전' : '주의'}</span>
                   </div>
                 </div>
-
-                <p className="text-xs text-[#8b95a1]">
-                  이 결과는 관리자에게 자동 전송됩니다.
-                </p>
               </CardContent>
             </Card>
           )}

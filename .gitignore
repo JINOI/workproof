@@ -11,5 +11,9 @@ __v0_jsx-dev-runtime.ts
 
 # Common ignores
 node_modules
+.pnpm-store/
 .next/
+.next-dev.*.log
+.next-start.*.log
+tsconfig.tsbuildinfo
 .DS_Store

@@ -1,13 +1,40 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { AlertTriangle, CheckCircle, Clock, Users } from 'lucide-react'
-import { Sidebar } from '@/components/dashboard/sidebar'
+
 import { DashboardHeader } from '@/components/dashboard/header'
-import { WorkerDetailModal } from '@/components/dashboard/worker-detail-modal'
+import { Sidebar } from '@/components/dashboard/sidebar'
+import { type WorkerDetail, WorkerDetailModal } from '@/components/dashboard/worker-detail-modal'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { mockWorkers, type Worker } from '@/lib/mock-data'
+import { createClient } from '@/lib/supabase/client'
+
+type WorkerStatus = WorkerDetail['status']
+
+type WorkerRow = WorkerDetail & {
+  sopTitle: string
+}
+
+type ApiSopSummary = {
+  id: string
+}
+
+type ApiEducationLog = {
+  id: string
+  worker_name: string
+  worker_birth_date: string
+  status: WorkerStatus
+  attempts: number
+  completed_at: string | null
+  wrong_question_ids: string[]
+}
+
+type ApiSopDetail = {
+  title: string
+  education_logs: ApiEducationLog[]
+}
 
 const statusConfig = {
   safe: {
@@ -17,10 +44,16 @@ const statusConfig = {
     iconClassName: 'bg-[#e6f9f1] text-[#00d082]',
   },
   warning: {
-    label: '경고',
+    label: '주의',
     icon: AlertTriangle,
     badgeClassName: 'bg-[#fff4d6] text-[#b88600] hover:bg-[#fff4d6]',
     iconClassName: 'bg-[#fff4d6] text-[#b88600]',
+  },
+  failed: {
+    label: '실패',
+    icon: AlertTriangle,
+    badgeClassName: 'bg-[#fff0f0] text-[#f04452] hover:bg-[#fff0f0]',
+    iconClassName: 'bg-[#fff0f0] text-[#f04452]',
   },
   pending: {
     label: '대기',
@@ -30,59 +63,172 @@ const statusConfig = {
   },
 }
 
+function formatDateTime(value: string | null) {
+  if (!value) return null
+
+  return new Intl.DateTimeFormat('ko-KR', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(value))
+}
+
+function toWorkerRow(log: ApiEducationLog, sopTitle: string): WorkerRow {
+  return {
+    id: log.id,
+    name: log.worker_name,
+    birthDate: log.worker_birth_date,
+    status: log.status,
+    attempts: log.attempts,
+    completedAt: formatDateTime(log.completed_at),
+    wrongAnswers: log.wrong_question_ids,
+    sopTitle,
+  }
+}
+
 export default function WorkersPage() {
+  const router = useRouter()
+  const [isCheckingSession, setIsCheckingSession] = useState(true)
+  const [isLoadingWorkers, setIsLoadingWorkers] = useState(false)
+  const [workers, setWorkers] = useState<WorkerRow[]>([])
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [searchValue, setSearchValue] = useState('')
-  const [selectedWorker, setSelectedWorker] = useState<Worker | null>(null)
+  const [selectedWorker, setSelectedWorker] = useState<WorkerRow | null>(null)
   const [showWorkerModal, setShowWorkerModal] = useState(false)
 
-  const normalizedSearchValue = searchValue.trim().toLowerCase()
-  const filteredWorkers = mockWorkers.filter((worker) => {
-    if (!normalizedSearchValue) {
-      return true
+  useEffect(() => {
+    let isMounted = true
+
+    async function loadWorkers() {
+      const supabase = createClient()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+
+      if (!isMounted) {
+        return
+      }
+
+      if (!user) {
+        router.replace('/')
+        return
+      }
+
+      setIsCheckingSession(false)
+      setIsLoadingWorkers(true)
+
+      try {
+        const summaryResponse = await fetch('/api/sops', {
+          cache: 'no-store',
+          credentials: 'same-origin',
+        })
+
+        if (!summaryResponse.ok) {
+          throw new Error('작업자 목록을 불러오지 못했습니다.')
+        }
+
+        const summaryPayload = (await summaryResponse.json()) as { sops: ApiSopSummary[] }
+        const detailPayloads = await Promise.all(
+          summaryPayload.sops.map(async (sop) => {
+            const response = await fetch(`/api/sops/${sop.id}`, {
+              cache: 'no-store',
+              credentials: 'same-origin',
+            })
+
+            if (!response.ok) {
+              throw new Error('작업자 목록을 불러오지 못했습니다.')
+            }
+
+            return (await response.json()) as { sop: ApiSopDetail }
+          }),
+        )
+
+        const nextWorkers = detailPayloads.flatMap(({ sop }) => sop.education_logs.map((log) => toWorkerRow(log, sop.title)))
+
+        if (isMounted) {
+          setWorkers(nextWorkers)
+          setLoadError(null)
+        }
+      } catch (error) {
+        if (isMounted) {
+          setLoadError(error instanceof Error ? error.message : '작업자 목록을 불러오지 못했습니다.')
+          setWorkers([])
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoadingWorkers(false)
+        }
+      }
     }
 
-    const statusLabel = statusConfig[worker.status].label
+    loadWorkers()
 
-    return (
-      worker.name.toLowerCase().includes(normalizedSearchValue) ||
-      worker.birthDate.includes(normalizedSearchValue) ||
-      statusLabel.includes(normalizedSearchValue)
-    )
-  })
+    return () => {
+      isMounted = false
+    }
+  }, [router])
 
-  const workerCounts = {
-    total: mockWorkers.length,
-    safe: mockWorkers.filter((worker) => worker.status === 'safe').length,
-    warning: mockWorkers.filter((worker) => worker.status === 'warning').length,
-    pending: mockWorkers.filter((worker) => worker.status === 'pending').length,
-  }
+  const filteredWorkers = useMemo(() => {
+    const normalizedSearchValue = searchValue.trim().toLowerCase()
+    if (!normalizedSearchValue) {
+      return workers
+    }
 
-  const handleWorkerClick = (worker: Worker) => {
+    return workers.filter((worker) => {
+      const statusLabel = statusConfig[worker.status].label
+      return (
+        worker.name.toLowerCase().includes(normalizedSearchValue) ||
+        worker.birthDate.includes(normalizedSearchValue) ||
+        worker.sopTitle.toLowerCase().includes(normalizedSearchValue) ||
+        statusLabel.includes(normalizedSearchValue)
+      )
+    })
+  }, [searchValue, workers])
+
+  const workerCounts = useMemo(
+    () => ({
+      total: workers.length,
+      safe: workers.filter((worker) => worker.status === 'safe').length,
+      warning: workers.filter((worker) => worker.status === 'warning' || worker.status === 'failed').length,
+      pending: workers.filter((worker) => worker.status === 'pending').length,
+    }),
+    [workers],
+  )
+
+  const handleWorkerClick = (worker: WorkerRow) => {
     setSelectedWorker(worker)
     setShowWorkerModal(true)
+  }
+
+  if (isCheckingSession) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background text-sm text-[#6b7684]">
+        로그인 상태를 확인하는 중입니다...
+      </div>
+    )
   }
 
   return (
     <div className="flex min-h-screen bg-background">
       <Sidebar />
 
-      <div className="flex-1 flex flex-col">
-        <DashboardHeader
-          searchValue={searchValue}
-          onSearchChange={setSearchValue}
-          placeholder="근로자 이름, 생년월일 또는 상태로 검색..."
-        />
+      <div className="flex flex-1 flex-col">
+        <DashboardHeader searchValue={searchValue} onSearchChange={setSearchValue} placeholder="근로자 이름, 생년월일, SOP 또는 상태로 검색..." />
 
-        <main className="flex-1 p-6 space-y-6">
+        <main className="flex-1 space-y-6 p-6">
           <div>
-            <h1 className="text-2xl font-bold text-[#333d4b] mb-1">근로자</h1>
-            <p className="text-[#6b7684]">근로자 명단과 교육 이수 상태를 확인하세요</p>
+            <h1 className="mb-1 text-2xl font-bold text-[#333d4b]">근로자</h1>
+            <p className="text-[#6b7684]">Supabase에 기록된 근로자 교육 이수 상태를 확인하세요.</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {loadError && <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{loadError}</p>}
+
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
             <Card className="border border-border">
-              <CardContent className="p-4 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-[#e8f3ff] flex items-center justify-center text-[#3182f6]">
+              <CardContent className="flex items-center gap-3 p-4">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#e8f3ff] text-[#3182f6]">
                   <Users className="h-5 w-5" />
                 </div>
                 <div>
@@ -92,51 +238,56 @@ export default function WorkersPage() {
               </CardContent>
             </Card>
             <StatusSummaryCard status="safe" count={workerCounts.safe} />
-            <StatusSummaryCard status="warning" count={workerCounts.warning} />
+            <StatusSummaryCard status="warning" count={workerCounts.warning} label="주의/실패" />
             <StatusSummaryCard status="pending" count={workerCounts.pending} />
           </div>
 
           <Card className="border border-border">
             <CardHeader className="pb-3">
-              <CardTitle className="text-lg text-[#333d4b]">근로자 명단</CardTitle>
+              <CardTitle className="text-lg text-[#333d4b]">근로자 목록</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto rounded-lg border border-[#e5e8eb]">
-                <div className="grid min-w-[760px] grid-cols-[1.2fr_1fr_0.8fr_0.8fr_1.1fr] gap-4 bg-[#f8f9fa] px-4 py-3 text-sm font-medium text-[#6b7684]">
+                <div className="grid min-w-[900px] grid-cols-[1.1fr_1fr_1.3fr_0.8fr_0.7fr_1.1fr] gap-4 bg-[#f8f9fa] px-4 py-3 text-sm font-medium text-[#6b7684]">
                   <span>이름</span>
                   <span>생년월일</span>
+                  <span>SOP</span>
                   <span>상태</span>
                   <span>시도</span>
                   <span>완료 시간</span>
                 </div>
 
                 <div className="divide-y divide-[#e5e8eb]">
-                  {filteredWorkers.map((worker) => {
-                    const config = statusConfig[worker.status]
+                  {isLoadingWorkers && (
+                    <div className="px-4 py-10 text-center text-sm text-[#8b95a1]">작업자 목록을 불러오는 중입니다...</div>
+                  )}
 
-                    return (
-                      <button
-                        key={worker.id}
-                        type="button"
-                        onClick={() => handleWorkerClick(worker)}
-                        className="grid min-w-[760px] w-full grid-cols-[1.2fr_1fr_0.8fr_0.8fr_1.1fr] items-center gap-4 px-4 py-4 text-left transition-colors hover:bg-[#f2f4f6]"
-                      >
-                        <span className="font-medium text-[#333d4b]">{worker.name}</span>
-                        <span className="text-sm text-[#6b7684]">{worker.birthDate}</span>
-                        <span>
-                          <Badge className={config.badgeClassName}>{config.label}</Badge>
-                        </span>
-                        <span className="text-sm text-[#333d4b]">{worker.attempts}회</span>
-                        <span className="text-sm text-[#6b7684]">{worker.completedAt ?? '-'}</span>
-                      </button>
-                    )
-                  })}
+                  {!isLoadingWorkers &&
+                    filteredWorkers.map((worker) => {
+                      const config = statusConfig[worker.status]
+
+                      return (
+                        <button
+                          key={worker.id}
+                          type="button"
+                          onClick={() => handleWorkerClick(worker)}
+                          className="grid min-w-[900px] w-full grid-cols-[1.1fr_1fr_1.3fr_0.8fr_0.7fr_1.1fr] items-center gap-4 px-4 py-4 text-left transition-colors hover:bg-[#f2f4f6]"
+                        >
+                          <span className="font-medium text-[#333d4b]">{worker.name}</span>
+                          <span className="text-sm text-[#6b7684]">{worker.birthDate}</span>
+                          <span className="truncate text-sm text-[#333d4b]">{worker.sopTitle}</span>
+                          <span>
+                            <Badge className={config.badgeClassName}>{config.label}</Badge>
+                          </span>
+                          <span className="text-sm text-[#333d4b]">{worker.attempts}회</span>
+                          <span className="text-sm text-[#6b7684]">{worker.completedAt ?? '-'}</span>
+                        </button>
+                      )
+                    })}
                 </div>
 
-                {filteredWorkers.length === 0 && (
-                  <div className="px-4 py-10 text-center text-sm text-[#8b95a1]">
-                    검색 결과가 없습니다
-                  </div>
+                {!isLoadingWorkers && filteredWorkers.length === 0 && (
+                  <div className="px-4 py-10 text-center text-sm text-[#8b95a1]">검색 결과가 없습니다</div>
                 )}
               </div>
             </CardContent>
@@ -144,11 +295,7 @@ export default function WorkersPage() {
         </main>
       </div>
 
-      <WorkerDetailModal
-        worker={selectedWorker}
-        open={showWorkerModal}
-        onOpenChange={setShowWorkerModal}
-      />
+      <WorkerDetailModal worker={selectedWorker} open={showWorkerModal} onOpenChange={setShowWorkerModal} />
     </div>
   )
 }
@@ -156,21 +303,23 @@ export default function WorkersPage() {
 function StatusSummaryCard({
   status,
   count,
+  label,
 }: {
-  status: Worker['status']
+  status: Exclude<WorkerStatus, 'failed'>
   count: number
+  label?: string
 }) {
   const config = statusConfig[status]
   const StatusIcon = config.icon
 
   return (
     <Card className="border border-border">
-      <CardContent className="p-4 flex items-center gap-3">
-        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${config.iconClassName}`}>
+      <CardContent className="flex items-center gap-3 p-4">
+        <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${config.iconClassName}`}>
           <StatusIcon className="h-5 w-5" />
         </div>
         <div>
-          <p className="text-sm text-[#6b7684]">{config.label}</p>
+          <p className="text-sm text-[#6b7684]">{label ?? config.label}</p>
           <p className="text-xl font-bold text-[#333d4b]">{count}명</p>
         </div>
       </CardContent>

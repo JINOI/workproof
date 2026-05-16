@@ -1,15 +1,17 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { Shield, LayoutDashboard, FileText, Users, Settings, User, LogOut } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { usePathname, useRouter } from 'next/navigation'
+import { FileText, LayoutDashboard, LogOut, Settings, Shield, User, Users } from 'lucide-react'
+
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { createClient } from '@/lib/supabase/client'
+import { cn } from '@/lib/utils'
 
 const sidebarItems = [
   { icon: LayoutDashboard, label: '대시보드', href: '/dashboard', activePath: '/dashboard' },
@@ -19,9 +21,17 @@ const sidebarItems = [
 
 export function Sidebar() {
   const pathname = usePathname()
+  const router = useRouter()
+
+  const handleSignOut = async () => {
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    router.push('/')
+    router.refresh()
+  }
 
   return (
-    <aside className="w-64 bg-card border-r border-border min-h-screen flex flex-col">
+    <aside className="flex min-h-screen w-64 flex-col border-r border-border bg-card">
       <div className="p-6">
         <Link href="/dashboard" className="flex items-center gap-2">
           <Shield className="h-7 w-7 text-[#3182f6]" />
@@ -33,15 +43,14 @@ export function Sidebar() {
         <ul className="space-y-1">
           {sidebarItems.map((item) => {
             const isActive = item.activePath === pathname || Boolean(item.activePrefix && pathname.startsWith(item.activePrefix))
+
             return (
               <li key={item.label}>
                 <Link
                   href={item.href}
                   className={cn(
-                    'flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors',
-                    isActive
-                      ? 'bg-[#e8f3ff] text-[#3182f6]'
-                      : 'text-[#6b7684] hover:bg-[#f2f4f6] hover:text-foreground'
+                    'flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors',
+                    isActive ? 'bg-[#e8f3ff] text-[#3182f6]' : 'text-[#6b7684] hover:bg-[#f2f4f6] hover:text-foreground',
                   )}
                 >
                   <item.icon className="h-5 w-5" />
@@ -66,11 +75,9 @@ export function Sidebar() {
                   <User className="h-4 w-4" />
                   프로필
                 </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/">
-                    <LogOut className="h-4 w-4" />
-                    로그아웃
-                  </Link>
+                <DropdownMenuItem onClick={handleSignOut}>
+                  <LogOut className="h-4 w-4" />
+                  로그아웃
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -78,14 +85,15 @@ export function Sidebar() {
         </ul>
       </nav>
 
-      <div className="p-4 border-t border-border">
-        <Link
-          href="/"
-          className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-[#6b7684] hover:bg-[#f2f4f6] hover:text-foreground transition-colors"
+      <div className="border-t border-border p-4">
+        <button
+          type="button"
+          onClick={handleSignOut}
+          className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left text-sm font-medium text-[#6b7684] transition-colors hover:bg-[#f2f4f6] hover:text-foreground"
         >
           <LogOut className="h-5 w-5" />
           로그아웃
-        </Link>
+        </button>
       </div>
     </aside>
   )
