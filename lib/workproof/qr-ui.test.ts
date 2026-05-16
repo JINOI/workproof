@@ -40,6 +40,21 @@ test('dashboard layout passes header actions into the dashboard header', () => {
   assert.match(source, /<DashboardHeader[\s\S]*headerActions=\{headerActions\}/)
 })
 
+test('dashboard page disables the header search while SOP management keeps it enabled', () => {
+  const dashboardSource = readSource('app/dashboard/page.tsx')
+  const dashboardLayoutTag = dashboardSource.match(/<DashboardLayout[\s\S]*?>/)?.[0] ?? ''
+
+  assert.doesNotMatch(dashboardLayoutTag, /searchValue=|onSearchChange=|placeholder=/)
+  assert.doesNotMatch(dashboardSource, /const \[searchValue/)
+  assert.doesNotMatch(dashboardSource, /filteredSOPs/)
+
+  const sopSource = readSource('app/sop/page.tsx')
+  const sopLayoutTag = sopSource.match(/<DashboardLayout[\s\S]*?>/)?.[0] ?? ''
+
+  assert.match(sopLayoutTag, /searchValue=\{searchValue\}/)
+  assert.match(sopLayoutTag, /onSearchChange=\{setSearchValue\}/)
+})
+
 test('company QR dialog trigger uses the requested button label', () => {
   const source = readSource('components/dashboard/company-qr.tsx')
 
