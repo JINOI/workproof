@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 
 import { CompanyQrDialogButton } from '@/components/dashboard/company-qr'
 import { DashboardLayout } from '@/components/dashboard/dashboard-layout'
+import { FrequentSopTemplates, type FrequentSopTemplate } from '@/components/dashboard/frequent-sop-templates'
 import { NewSOPModal } from '@/components/dashboard/new-sop-modal'
 import { type DashboardSop, SOPList } from '@/components/dashboard/sop-list'
 import { StatsCards } from '@/components/dashboard/stats-cards'
@@ -52,7 +53,10 @@ export default function DashboardPage() {
   const router = useRouter()
   const [isCheckingSession, setIsCheckingSession] = useState(true)
   const [isLoadingSops, setIsLoadingSops] = useState(false)
+  const [isLoadingFrequentSops, setIsLoadingFrequentSops] = useState(false)
   const [sops, setSops] = useState<DashboardSop[]>([])
+  const [frequentSopTemplates, setFrequentSopTemplates] = useState<FrequentSopTemplate[]>([])
+  const [addingTemplateKey, setAddingTemplateKey] = useState<string | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [searchValue, setSearchValue] = useState('')
   const [showNewSOPModal, setShowNewSOPModal] = useState(false)
@@ -78,21 +82,34 @@ export default function DashboardPage() {
 
       setIsCheckingSession(false)
       setIsLoadingSops(true)
+      setIsLoadingFrequentSops(true)
 
       try {
-        const response = await fetch('/api/sops', {
-          cache: 'no-store',
-          credentials: 'same-origin',
-        })
+        const [sopsResponse, templatesResponse] = await Promise.all([
+          fetch('/api/sops', {
+            cache: 'no-store',
+            credentials: 'same-origin',
+          }),
+          fetch('/api/frequent-sops', {
+            cache: 'no-store',
+            credentials: 'same-origin',
+          }),
+        ])
 
-        if (!response.ok) {
+        if (!sopsResponse.ok) {
           throw new Error('SOP 목록을 불러오지 못했습니다.')
         }
 
-        const payload = (await response.json()) as { sops: ApiSop[] }
+        if (!templatesResponse.ok) {
+          throw new Error('자주 찾는 SOP를 불러오지 못했습니다.')
+        }
+
+        const sopsPayload = (await sopsResponse.json()) as { sops: ApiSop[] }
+        const templatesPayload = (await templatesResponse.json()) as { templates: FrequentSopTemplate[] }
 
         if (isMounted) {
-          setSops(payload.sops.map(toDashboardSop))
+          setSops(sopsPayload.sops.map(toDashboardSop))
+          setFrequentSopTemplates(templatesPayload.templates)
           setLoadError(null)
         }
       } catch (error) {
@@ -103,6 +120,7 @@ export default function DashboardPage() {
       } finally {
         if (isMounted) {
           setIsLoadingSops(false)
+          setIsLoadingFrequentSops(false)
         }
       }
     }
@@ -135,6 +153,38 @@ export default function DashboardPage() {
     }
   }, [sops])
 
+  const handleAddFrequentSop = async (templateKey: string) => {
+    setAddingTemplateKey(templateKey)
+    setLoadError(null)
+
+    try {
+      const response = await fetch('/api/frequent-sops', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'same-origin',
+        body: JSON.stringify({ templateKey }),
+      })
+      const payload = (await response.json().catch(() => ({}))) as { sop?: ApiSop; error?: string }
+
+      if (!response.ok || !payload.sop) {
+        throw new Error(payload.error ?? '자주 찾는 SOP를 추가하지 못했습니다.')
+      }
+
+      setFrequentSopTemplates((currentTemplates) =>
+        currentTemplates.map((template) =>
+          template.template_key === templateKey ? { ...template, addedSopId: payload.sop?.id ?? null } : template,
+        ),
+      )
+      setRefreshToken((value) => value + 1)
+    } catch (error) {
+      setLoadError(error instanceof Error ? error.message : '자주 찾는 SOP를 추가하지 못했습니다.')
+    } finally {
+      setAddingTemplateKey(null)
+    }
+  }
+
   if (isCheckingSession) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background text-sm text-[#6b7684]">
@@ -158,6 +208,13 @@ export default function DashboardPage() {
         {loadError && <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{loadError}</p>}
 
         <StatsCards {...stats} />
+
+        <FrequentSopTemplates
+          templates={frequentSopTemplates}
+          isLoading={isLoadingFrequentSops}
+          addingTemplateKey={addingTemplateKey}
+          onAddTemplate={handleAddFrequentSop}
+        />
 
         <SOPList
           sops={filteredSOPs}

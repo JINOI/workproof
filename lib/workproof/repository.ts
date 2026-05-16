@@ -2,9 +2,20 @@ import { notFound } from 'next/navigation'
 import { randomUUID } from 'node:crypto'
 
 import { createClient } from '@/lib/supabase/server'
+import type { Json } from '@/lib/supabase/database.types'
 import type { QuizQuestionInsert, SopInsert, SubmitEducationPayload } from './types'
 
 type NewQuizQuestionInput = Omit<QuizQuestionInsert, 'sop_id' | 'organization_name'>
+type FrequentSopTemplateQuestion = {
+  language: string
+  position: number
+  type: 'ox' | 'multiple'
+  prompt: string
+  options: Json | null
+  correct_answer: Json
+  explanation: string | null
+}
+
 type CompanyProfile = {
   id: string
   organization_name: string | null
@@ -82,6 +93,49 @@ export async function getCompanyQrForManager() {
     companyPublicToken: profile.company_public_token,
     educationPath: `/education/company/${profile.company_public_token}`,
   }
+}
+
+export async function listFrequentSopTemplates() {
+  const supabase = await createClient()
+  const user = await getCurrentUser()
+
+  if (!user) {
+    throw new Error('Authentication required')
+  }
+
+  const { data: templates, error: templatesError } = await supabase
+    .from('frequent_sop_templates')
+    .select('id, template_key, title, description, languages, display_order')
+    .order('display_order', { ascending: true })
+
+  if (templatesError) {
+    throw templatesError
+  }
+
+  const templateKeys = templates.map((template) => template.template_key)
+  const { data: addedSops, error: addedSopsError } =
+    templateKeys.length > 0
+      ? await supabase
+          .from('sops')
+          .select('id, source_template_key')
+          .eq('owner_id', user.id)
+          .in('source_template_key', templateKeys)
+      : { data: [], error: null }
+
+  if (addedSopsError) {
+    throw addedSopsError
+  }
+
+  const addedByTemplateKey = new Map(
+    (addedSops ?? [])
+      .filter((sop): sop is { id: string; source_template_key: string } => Boolean(sop.source_template_key))
+      .map((sop) => [sop.source_template_key, sop.id]),
+  )
+
+  return templates.map((template) => ({
+    ...template,
+    addedSopId: addedByTemplateKey.get(template.template_key) ?? null,
+  }))
 }
 
 export async function getSopForManager(id: string) {
@@ -237,6 +291,69 @@ export async function createSop(input: Omit<SopInsert, 'owner_id' | 'company_pub
   }
 
   return sop
+}
+
+export async function addFrequentSopTemplateToCurrentUser(templateKey: string) {
+  const supabase = await createClient()
+  const user = await getCurrentUser()
+
+  if (!user) {
+    throw new Error('Authentication required')
+  }
+
+  const { data: existingSop, error: existingSopError } = await supabase
+    .from('sops')
+    .select('id, title, description, created_at, status')
+    .eq('owner_id', user.id)
+    .eq('source_template_key', templateKey)
+    .maybeSingle()
+
+  if (existingSopError) {
+    throw existingSopError
+  }
+
+  if (existingSop) {
+    return existingSop
+  }
+
+  const { data: template, error: templateError } = await supabase
+    .from('frequent_sop_templates')
+    .select('*, frequent_sop_template_questions(*)')
+    .eq('template_key', templateKey)
+    .single()
+
+  if (templateError) {
+    throw templateError
+  }
+
+  const questions = [...(template.frequent_sop_template_questions as FrequentSopTemplateQuestion[])]
+    .sort((left, right) => {
+      if (left.language === right.language) {
+        return left.position - right.position
+      }
+
+      return left.language.localeCompare(right.language)
+    })
+    .map((question) => ({
+      language: question.language,
+      position: question.position,
+      type: question.type,
+      prompt: question.prompt,
+      options: question.options,
+      correct_answer: question.correct_answer,
+      explanation: question.explanation,
+    }))
+
+  return createSop({
+    title: template.title,
+    description: template.description,
+    source_template_key: template.template_key,
+    ai_summary: template.ai_summary,
+    education_cards: template.education_cards,
+    languages: template.languages,
+    status: 'active',
+    questions,
+  })
 }
 
 function sanitizeFileName(fileName: string) {

@@ -24,6 +24,14 @@ const sidebarItems = [
   { icon: Users, label: '근로자', href: '/workers', activePrefix: '/workers' },
 ] as const
 
+function isSidebarItemActive(item: (typeof sidebarItems)[number], pathname: string) {
+  if ('activePath' in item && item.activePath === pathname) {
+    return true
+  }
+
+  return 'activePrefix' in item && pathname.startsWith(item.activePrefix)
+}
+
 export function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
@@ -86,8 +94,7 @@ export function Sidebar() {
             />
 
             {sidebarItems.map((item) => {
-              const isActive =
-                item.activePath === pathname || Boolean(item.activePrefix && pathname.startsWith(item.activePrefix))
+              const isActive = isSidebarItemActive(item, pathname)
 
               return (
                 <li key={item.label}>
