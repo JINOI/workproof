@@ -18,6 +18,8 @@ const summaryCardSchema = z.object({
   icon: z.enum(['warning', 'safety', 'prohibited', 'equipment']),
 })
 
+const summaryListSchema = z.array(z.string()).optional().default([])
+
 const quizQuestionSchema = z.object({
   language: z.string(),
   position: z.number().int().positive(),
@@ -35,10 +37,10 @@ const generatedSopSchema = z.object({
     sourceLanguage: z.string().min(1),
     documentSummary: z.string().min(1),
     cards: z.array(summaryCardSchema).min(1),
-    workSteps: z.array(z.string()).min(1),
-    hazards: z.array(z.string()).min(1),
-    protectiveEquipment: z.array(z.string()).min(1),
-    prohibitedActions: z.array(z.string()).min(1),
+    workSteps: summaryListSchema,
+    hazards: summaryListSchema,
+    protectiveEquipment: summaryListSchema,
+    prohibitedActions: summaryListSchema,
   }),
   educationCards: z.array(educationCardSchema).min(1),
   quizQuestions: z.array(quizQuestionSchema).min(1),
@@ -136,6 +138,7 @@ function buildPrompt(languages: SupportedLanguageCode[]) {
     'Rules:',
     '- summary.cards is the server-stored education summary material. It must be derived from the uploaded document before translation or quiz generation.',
     '- summary.cards must contain 1 to 10 cards. Never create more than 10 cards, even for long documents.',
+    '- Every summary list must contain at least one item. If protective equipment is not explicit, include a conservative PPE item such as wearing required site protective equipment.',
     '- educationCards must be translations of summary.cards for each target language. Keep the same positions and icons as summary.cards.',
     '- Prefer 4 to 8 cards when the document is ordinary length; use up to 10 only when the SOP has enough distinct safety topics.',
     '- Create exactly 10 quiz questions per language.',
@@ -163,6 +166,11 @@ function getResponseText(payload: GeminiResponse) {
   }
 
   return text
+}
+
+function normalizeSummaryList(values: string[], fallback: string) {
+  const normalized = values.map((value) => value.trim()).filter(Boolean)
+  return normalized.length > 0 ? normalized : [fallback]
 }
 
 function normalizeGeneratedSop(value: GeneratedSop, languages: SupportedLanguageCode[]): GeneratedSop {
@@ -214,6 +222,10 @@ function normalizeGeneratedSop(value: GeneratedSop, languages: SupportedLanguage
     summary: {
       ...value.summary,
       cards,
+      workSteps: normalizeSummaryList(value.summary.workSteps, '문서의 작업 절차를 확인하고 현장 지시에 따라 작업합니다.'),
+      hazards: normalizeSummaryList(value.summary.hazards, '작업 전 주변 위험요소를 확인합니다.'),
+      protectiveEquipment: normalizeSummaryList(value.summary.protectiveEquipment, '작업에 필요한 개인보호구를 착용합니다.'),
+      prohibitedActions: normalizeSummaryList(value.summary.prohibitedActions, '문서와 현장 안전수칙에서 금지한 행동을 하지 않습니다.'),
     },
     educationCards,
     quizQuestions: languages.flatMap((language) =>

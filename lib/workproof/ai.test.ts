@@ -106,3 +106,23 @@ test('caps summary and translated education cards at ten cards', () => {
   assert.equal(parsed.summary.cards.length, 10)
   assert.equal(parsed.educationCards.length, 10)
 })
+
+test('fills empty summary lists from Gemini with safe defaults', () => {
+  const payload = {
+    ...validPayload,
+    summary: {
+      ...validPayload.summary,
+      workSteps: [],
+      hazards: ['  '],
+      protectiveEquipment: [],
+      prohibitedActions: [],
+    },
+  }
+
+  const parsed = parseGeneratedSop(JSON.stringify(payload), ['ko'])
+
+  assert.deepEqual(parsed.summary.workSteps, ['문서의 작업 절차를 확인하고 현장 지시에 따라 작업합니다.'])
+  assert.deepEqual(parsed.summary.hazards, ['작업 전 주변 위험요소를 확인합니다.'])
+  assert.deepEqual(parsed.summary.protectiveEquipment, ['작업에 필요한 개인보호구를 착용합니다.'])
+  assert.deepEqual(parsed.summary.prohibitedActions, ['문서와 현장 안전수칙에서 금지한 행동을 하지 않습니다.'])
+})
